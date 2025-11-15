@@ -1,0 +1,174 @@
+import { useState } from "react";
+import type { Todo, Category } from "../types";
+
+interface TodoListProps {
+  todos: Todo[];
+  categories: Category[];
+  onAddTodo: (text: string, category: Category) => void;
+  onToggleTodo: (id: string) => void;
+  onLaunch: () => void;
+  onAddCategory: (category: Category) => void;
+}
+
+export default function TodoList({
+  todos,
+  categories,
+  onAddTodo,
+  onToggleTodo,
+  onLaunch,
+  onAddCategory,
+}: TodoListProps) {
+  const [newTodoTexts, setNewTodoTexts] = useState<Record<Category, string>>(
+    {}
+  );
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+
+  // 카테고리별로 todos 그룹화
+  const todosByCategory = todos.reduce((acc, todo) => {
+    if (!acc[todo.category]) {
+      acc[todo.category] = [];
+    }
+    acc[todo.category].push(todo);
+    return acc;
+  }, {} as Record<Category, Todo[]>);
+
+  const handleAddTodo = (category: Category) => {
+    const text = newTodoTexts[category] || "";
+    if (text.trim()) {
+      onAddTodo(text, category);
+      setNewTodoTexts({ ...newTodoTexts, [category]: "" });
+    }
+  };
+
+  const handleAddCategory = () => {
+    if (newCategoryName.trim()) {
+      onAddCategory(newCategoryName.trim());
+      setNewCategoryName("");
+      setIsAddingCategory(false);
+    }
+  };
+
+  const checkedCount = todos.filter((todo) => todo.completed).length;
+
+  return (
+    <div className="h-full bg-[#1a1a2e] p-5 flex flex-col overflow-y-auto rounded-lg shadow-2xl">
+      <div className="flex-1 overflow-y-auto mb-5 space-y-4">
+        {categories.map((category) => (
+          <div key={category} className="mb-4">
+            {/* 카테고리 헤더 */}
+            <div className="flex items-center gap-2 mb-2">
+              <div className="flex-1 bg-[#16213e] rounded px-3 py-2">
+                <span className="text-white">{category}</span>
+              </div>
+              <button
+                onClick={() => {
+                  const input = document.getElementById(
+                    `todo-input-${category}`
+                  ) as HTMLInputElement;
+                  if (input) {
+                    input.focus();
+                  }
+                }}
+                className="w-8 h-8 bg-[#16213e] rounded-full flex items-center justify-center text-white text-lg hover:bg-[#1e2a4a] transition-colors"
+              >
+                +
+              </button>
+            </div>
+
+            {/* 해당 카테고리의 할 일 목록 */}
+            <div className="space-y-2">
+              {todosByCategory[category]?.map((todo) => (
+                <div
+                  key={todo.id}
+                  className="flex items-center gap-2.5 p-2.5 bg-[#16213e] rounded"
+                >
+                  <input
+                    type="checkbox"
+                    checked={todo.completed}
+                    onChange={() => onToggleTodo(todo.id)}
+                    className="cursor-pointer"
+                  />
+                  <span
+                    className={`text-white flex-1 ${
+                      todo.completed ? "line-through opacity-60" : ""
+                    }`}
+                  >
+                    {todo.text}
+                  </span>
+                </div>
+              ))}
+
+              {/* 새 할 일 입력 */}
+              <input
+                id={`todo-input-${category}`}
+                type="text"
+                placeholder="할 일의 내용"
+                value={newTodoTexts[category] || ""}
+                onChange={(e) =>
+                  setNewTodoTexts({
+                    ...newTodoTexts,
+                    [category]: e.target.value,
+                  })
+                }
+                onKeyPress={(e) => {
+                  if (e.key === "Enter") {
+                    handleAddTodo(category);
+                  }
+                }}
+                className="w-full p-2 bg-[#16213e] border border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none focus:border-gray-500"
+              />
+            </div>
+          </div>
+        ))}
+
+        {/* 새 카테고리 추가 */}
+        {isAddingCategory ? (
+          <div className="mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <input
+                type="text"
+                placeholder="행성 이름"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === "Enter") {
+                    handleAddCategory();
+                  } else if (e.key === "Escape") {
+                    setIsAddingCategory(false);
+                    setNewCategoryName("");
+                  }
+                }}
+                className="flex-1 bg-[#16213e] rounded px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:border focus:border-gray-500"
+                autoFocus
+              />
+              <button
+                onClick={handleAddCategory}
+                className="w-8 h-8 bg-[#16213e] rounded-full flex items-center justify-center text-white text-lg hover:bg-[#1e2a4a] transition-colors"
+              >
+                +
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => setIsAddingCategory(true)}
+            className="w-full p-3 bg-[#16213e] rounded text-white hover:bg-[#1e2a4a] transition-colors text-left"
+          >
+            + 새 카테고리 추가
+          </button>
+        )}
+      </div>
+
+      <div className="pt-5 border-t border-gray-700">
+        <button
+          onClick={onLaunch}
+          className="w-full p-4 bg-[#e74c3c] text-white border-none rounded-lg text-base font-bold cursor-pointer hover:bg-[#c0392b] disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={checkedCount === 0}
+        >
+          발사 ({checkedCount})
+        </button>
+      </div>
+    </div>
+  );
+}

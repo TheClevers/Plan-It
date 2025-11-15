@@ -1,0 +1,144 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
+      "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans",
+      "Helvetica Neue", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-color: #0a0a1a;
+    color: white;
+  }
+
+  #root {
+    width: 100%;
+    height: 100vh;
+  }
+}
+
+@layer utilities {
+  /* 커스텀 체크박스 스타일 */
+  input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #9ca3af;
+    border-radius: 4px;
+    background-color: transparent;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s;
+  }
+
+  input[type="checkbox"]:checked {
+    background-color: #eab308;
+    border-color: #eab308;
+  }
+
+  input[type="checkbox"]:checked::after {
+    content: "✓";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+  }
+
+  input[type="checkbox"]:hover {
+    border-color: #d1d5db;
+  }
+
+  input[type="checkbox"]:checked:hover {
+    background-color: #facc15;
+    border-color: #facc15;
+  }
+
+  /* 우주 배경 스타일 */
+  .space-background {
+    background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .space-background::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: radial-gradient(2px 2px at 20% 30%, white, transparent),
+      radial-gradient(2px 2px at 60% 70%, white, transparent),
+      radial-gradient(1px 1px at 50% 50%, white, transparent),
+      radial-gradient(1px 1px at 80% 10%, white, transparent),
+      radial-gradient(2px 2px at 90% 40%, white, transparent),
+      radial-gradient(1px 1px at 33% 60%, white, transparent),
+      radial-gradient(1px 1px at 55% 80%, white, transparent),
+      radial-gradient(2px 2px at 10% 90%, white, transparent),
+      radial-gradient(1px 1px at 70% 20%, white, transparent),
+      radial-gradient(1px 1px at 40% 10%, white, transparent);
+    background-repeat: repeat;
+    background-size: 200px 200px;
+    animation: twinkle 3s ease-in-out infinite alternate;
+    opacity: 0.8;
+  }
+
+  @keyframes twinkle {
+    0% {
+      opacity: 0.5;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+
+  /* 행성 3D 효과 */
+  .planet-3d {
+    position: relative;
+    transform-style: preserve-3d;
+    animation: float 6s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+
+  .planet-glow {
+    box-shadow: 0 0 20px rgba(102, 126, 234, 0.6),
+      0 0 40px rgba(102, 126, 234, 0.4), 0 0 60px rgba(102, 126, 234, 0.2),
+      inset -10px -10px 20px rgba(0, 0, 0, 0.5),
+      inset 10px 10px 20px rgba(255, 255, 255, 0.1);
+  }
+
+  .planet-surface {
+    background: radial-gradient(
+        circle at 30% 30%,
+        rgba(255, 255, 255, 0.2) 0%,
+        transparent 50%
+      ),
+      radial-gradient(circle at 70% 70%, rgba(0, 0, 0, 0.3) 0%, transparent 50%),
+      linear-gradient(
+        135deg,
+        rgba(102, 126, 234, 0.8) 0%,
+        rgba(118, 75, 162, 0.8) 100%
+      );
+  }
+}
