@@ -163,10 +163,36 @@ export default function TodoList({
       <div className="pt-5 border-t border-gray-700">
         <button
           onClick={onLaunch}
-          className="w-full p-4 bg-[#e74c3c] text-white border-none rounded-lg text-base font-bold cursor-pointer hover:bg-[#c0392b] disabled:opacity-50 disabled:cursor-not-allowed"
           disabled={checkedCount === 0}
+          className="
+            relative w-full p-4 bg-transparent border-none rounded-lg cursor-pointer
+            disabled:opacity-50 disabled:cursor-not-allowed
+            group
+          "
         >
-          발사 ({checkedCount})
+          {/* 이미지 */}
+          <img
+            src="/src/assets/launch_button.png"
+            alt="발사 버튼"
+            className="
+              mx-auto w-32 h-auto
+              transition-transform duration-200
+              group-hover:scale-105
+            "
+          />
+
+          {/* 중앙 숫자 */}
+          <span
+            className="
+              absolute inset-0 flex items-center justify-center
+              text-white font-bold text-lg
+              pointer-events-none
+              transition-all duration-200
+              group-hover:scale-110
+            "
+          >
+            {checkedCount}
+          </span>
         </button>
       </div>
     </div>

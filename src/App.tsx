@@ -10,6 +10,19 @@ interface PlanetPosition {
   y: number;
 }
 
+// 🌞 태양/궤도 관련 상수
+const SUN_SIZE = 800;                    // 태양 이미지 크기(px)
+const SUN_RIGHT_OFFSET = -SUN_SIZE / 2;  // 화면 오른쪽 밖으로 절반 나가게
+const SUN_BOTTOM_OFFSET = 40;            // 아래에서 40px 위
+const PLANET_ORBIT_RADIUS = {"냥냥": 500, "청소": 750, "공부": 1000}; // 태양으로부터 거리
+
+const getOrbitRadius = (category: string) => {
+  if (category.includes("냥냥")) return PLANET_ORBIT_RADIUS["냥냥"];
+  if (category.includes("청소")) return PLANET_ORBIT_RADIUS["청소"];
+  if (category.includes("공부")) return PLANET_ORBIT_RADIUS["공부"];
+  return 500; // 디폴트
+};
+
 function App() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [completedTasks, setCompletedTasks] = useState<CompletedTask[]>([]);
@@ -52,140 +65,50 @@ function App() {
     ])
   ).filter(Boolean);
 
-  // 두 점 사이의 거리 계산
-  const getDistance = (x1: number, y1: number, x2: number, y2: number) => {
-    return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
-  };
+  // 🌞 태양 기준으로 행성 위치 생성 (새 카테고리만 랜덤 각도 배치)
+  useEffect(() => {
+    if (!containerRef.current || allCategories.length === 0) return;
 
-  // 행성 위치 생성 함수
-  const generatePlanetPositions = useCallback(
-    (
-      categories: Category[],
-      containerWidth: number,
-      containerHeight: number
-    ): Record<Category, PlanetPosition> => {
-      const positions: Record<Category, PlanetPosition> = {} as Record<
-        Category,
-        PlanetPosition
-      >;
-      const minDistance = 200; // 최소 거리 (픽셀)
-      const padding = 100; // 경계 여백
-      const maxAttempts = 100; // 최대 시도 횟수
+    const container = containerRef.current;
+    const width = container.clientWidth;
+    const height = container.clientHeight;
 
-      categories.forEach((category) => {
-        const size = getPlanetSize(category);
-        const requiredDistance = minDistance + size;
+    if (width <= 0 || height <= 0) return;
 
-        let attempts = 0;
-        let validPosition = false;
-        let x = 0;
-        let y = 0;
+    // 태양의 left/top 계산 (right/bottom 기준 역산)
+    const sunLeft = width - SUN_SIZE - SUN_RIGHT_OFFSET;
+    const sunTop = height - SUN_SIZE - SUN_BOTTOM_OFFSET;
 
-        while (!validPosition && attempts < maxAttempts) {
-          // 랜덤 위치 생성 (패딩 고려)
-          x = padding + Math.random() * (containerWidth - 2 * padding - size);
-          y = padding + Math.random() * (containerHeight - 2 * padding - size);
+    // 태양 중심 좌표
+    const sunCenterX = sunLeft + SUN_SIZE / 2;
+    const sunCenterY = sunTop + SUN_SIZE / 2;
 
-          // 기존 행성들과의 거리 확인
-          validPosition = Object.values(positions).every((pos) => {
-            const distance = getDistance(x, y, pos.x, pos.y);
-            const otherSize = getPlanetSize(pos.category);
-            return distance >= requiredDistance + otherSize / 2;
-          });
+    setPlanetPositions((prev) => {
+      // 이미 위치가 있는 카테고리는 그대로 두고,
+      // 위치가 없는 새 카테고리만 랜덤으로 생성
+      const next: Record<Category, PlanetPosition> = { ...prev };
 
-          attempts++;
-        }
+      const newCategories = allCategories.filter(
+        (cat) => !next[cat]
+      );
 
-        // 최대 시도 횟수 초과 시 강제 배치 (중앙 근처)
-        if (!validPosition) {
-          x = containerWidth / 2 + (Math.random() - 0.5) * 300;
-          y = containerHeight / 2 + (Math.random() - 0.5) * 300;
-        }
+      newCategories.forEach((category) => {
+        const angle = Math.random() * (13/12 * Math.PI - 11/12 * Math.PI) + 11/12 * Math.PI; // 11/12π ~ 13/12π 사이 랜덤 값
+        const radius = getOrbitRadius(category)
+        const x = sunCenterX + Math.cos(angle) * radius;
+        const y = sunCenterY + Math.sin(angle) * radius;
 
-        positions[category] = { category, x, y };
+        next[category] = { category, x, y };
       });
 
-      return positions;
-    },
-    [getPlanetSize]
-  );
-
-  // 새로운 카테고리만 위치 생성 (기존 위치는 유지)
-  useEffect(() => {
-    if (containerRef.current && allCategories.length > 0) {
-      const container = containerRef.current;
-      const width = container.clientWidth;
-      const height = container.clientHeight;
-
-      if (width > 0 && height > 0) {
-        setPlanetPositions((prevPositions) => {
-          // 이미 위치가 있는 카테고리는 제외
-          const existingCategories = Object.keys(prevPositions);
-          const newCategories = allCategories.filter(
-            (cat) => !existingCategories.includes(cat)
-          );
-
-          if (newCategories.length === 0) {
-            return prevPositions; // 새로운 카테고리가 없으면 기존 위치 유지
-          }
-
-          // 기존 위치들을 고려하여 새로운 카테고리 위치 생성
-          const existingPositions = Object.values(prevPositions);
-          const newPositions: Record<Category, PlanetPosition> = {
-            ...prevPositions,
-          };
-
-          const minDistance = 200;
-          const padding = 100;
-          const maxAttempts = 100;
-
-          newCategories.forEach((category) => {
-            const size = getPlanetSize(category);
-            const requiredDistance = minDistance + size;
-
-            let attempts = 0;
-            let validPosition = false;
-            let x = 0;
-            let y = 0;
-
-            while (!validPosition && attempts < maxAttempts) {
-              x = padding + Math.random() * (width - 2 * padding - size);
-              y = padding + Math.random() * (height - 2 * padding - size);
-
-              // 기존 모든 행성들과의 거리 확인
-              validPosition =
-                existingPositions.every((pos) => {
-                  const distance = getDistance(x, y, pos.x, pos.y);
-                  const otherSize = getPlanetSize(pos.category);
-                  return distance >= requiredDistance + otherSize / 2;
-                }) &&
-                Object.values(newPositions).every((pos) => {
-                  if (pos.category === category) return true;
-                  const distance = getDistance(x, y, pos.x, pos.y);
-                  const otherSize = getPlanetSize(pos.category);
-                  return distance >= requiredDistance + otherSize / 2;
-                });
-
-              attempts++;
-            }
-
-            if (!validPosition) {
-              x = width / 2 + (Math.random() - 0.5) * 300;
-              y = height / 2 + (Math.random() - 0.5) * 300;
-            }
-
-            newPositions[category] = { category, x, y };
-          });
-
-          return newPositions;
-        });
-      }
-    }
-  }, [allCategories, generatePlanetPositions, getPlanetSize]);
+      return next;
+    });
+  }, [allCategories]);
 
   const handleAddCategory = (category: Category) => {
-    if (category.trim() && !categories.includes(category.trim())) {
-      setCategories([...categories, category.trim()]);
+    const trimmed = category.trim();
+    if (trimmed && !categories.includes(trimmed)) {
+      setCategories([...categories, trimmed]);
     }
   };
 
@@ -196,16 +119,17 @@ function App() {
       category,
       completed: false,
     };
-    setTodos([...todos, newTodo]);
+    setTodos((prev) => [...prev, newTodo]);
+
     // 카테고리가 없으면 추가
     if (!categories.includes(category)) {
-      setCategories([...categories, category]);
+      setCategories((prev) => [...prev, category]);
     }
   };
 
   const handleToggleTodo = (id: string) => {
-    setTodos(
-      todos.map((todo) =>
+    setTodos((prev) =>
+      prev.map((todo) =>
         todo.id === id ? { ...todo, completed: !todo.completed } : todo
       )
     );
@@ -213,6 +137,8 @@ function App() {
 
   const handleLaunch = () => {
     const checkedTodos = todos.filter((todo) => todo.completed);
+
+    if (checkedTodos.length === 0) return;
 
     // 완료된 할 일들을 completedTasks에 추가
     const newCompletedTasks: CompletedTask[] = checkedTodos.map((todo) => ({
@@ -222,10 +148,10 @@ function App() {
       completedAt: new Date(),
     }));
 
-    setCompletedTasks([...completedTasks, ...newCompletedTasks]);
+    setCompletedTasks((prev) => [...prev, ...newCompletedTasks]);
 
     // 완료된 할 일들을 todos에서 제거
-    setTodos(todos.filter((todo) => !todo.completed));
+    setTodos((prev) => prev.filter((todo) => !todo.completed));
   };
 
   const handlePlanetHover = (category: Category) => {
@@ -257,6 +183,7 @@ function App() {
 
   return (
     <div className="flex h-screen overflow-hidden">
+      {/* 왼쪽 패널 */}
       <div className="w-[300px] relative bg-[#0a0a1a]">
         {/* 타이틀 영역 - 떠있는 카드 */}
         <div className="absolute top-5 left-5 right-5 bg-[#1a1a2e] p-5 rounded-lg shadow-2xl z-10">
@@ -279,11 +206,31 @@ function App() {
         </div>
       </div>
 
+      {/* 오른쪽 우주 공간 */}
       <div
         ref={containerRef}
         className="flex-1 space-background relative overflow-auto p-10"
         style={{ minHeight: "100vh" }}
       >
+        {/* 🌞 태양 이미지 — 오른쪽 아래, 화면 밖으로 절반 나가게 */}
+        <img
+          src="/src/assets/sun.png"
+          alt="sun"
+          className="absolute pointer-events-none z-0"
+          style={{
+            width: `${SUN_SIZE}px`,
+            height: `${SUN_SIZE}px`,
+            right: SUN_RIGHT_OFFSET,
+            bottom: SUN_BOTTOM_OFFSET,
+            filter: `
+              drop-shadow(0 0 40px rgba(255, 200, 50, 0.8))
+              drop-shadow(0 0 80px rgba(255, 180, 40, 0.6))
+              drop-shadow(0 0 120px rgba(255, 150, 30, 0.4))
+            `,
+          }}
+        />
+
+        {/* 행성들 */}
         <div
           className="relative w-full h-full"
           style={{ minHeight: "calc(100vh - 80px)" }}
@@ -312,6 +259,7 @@ function App() {
                     onClick={() => {}}
                   />
                 </div>
+
                 {selectedPlanetCategory === category && (
                   <div
                     onMouseEnter={() => handlePlanetHover(category)}
