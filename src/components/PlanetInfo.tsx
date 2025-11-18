@@ -16,7 +16,6 @@ interface PlanetInfoProps {
 export default function PlanetInfo({
   category,
   completedTasks,
-  planetPosition,
   planetSize,
 }: PlanetInfoProps) {
   // 행성 오른쪽에 표시 (공간이 부족하면 왼쪽)
