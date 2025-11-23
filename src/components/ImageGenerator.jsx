@@ -1,12 +1,41 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { generateImage } from "../services/geminiImage";
 
 export default function ImageGenerator() {
   const [isOpen, setIsOpen] = useState(false);
   const [prompt, setPrompt] = useState("사과");
+  const [exampleImage, setExampleImage] = useState(null);
+  const [exampleImagePreview, setExampleImagePreview] = useState(null);
   const [generatedImage, setGeneratedImage] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const fileInputRef = useRef(null);
+
+  const handleImageSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith("image/")) {
+        setError("이미지 파일만 선택할 수 있습니다.");
+        return;
+      }
+      setExampleImage(file);
+      // 미리보기 생성
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setExampleImagePreview(e.target.result);
+      };
+      reader.readAsDataURL(file);
+      setError(null);
+    }
+  };
+
+  const handleRemoveExampleImage = () => {
+    setExampleImage(null);
+    setExampleImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
 
   const handleGenerate = async () => {
     if (!prompt.trim() || isLoading) return;
@@ -16,7 +45,7 @@ export default function ImageGenerator() {
     setGeneratedImage(null);
 
     try {
-      const imageDataUrl = await generateImage(prompt);
+      const imageDataUrl = await generateImage(prompt, exampleImage);
       setGeneratedImage(imageDataUrl);
     } catch (err) {
       setError(err.message || "이미지 생성에 실패했습니다.");
@@ -83,8 +112,13 @@ export default function ImageGenerator() {
               onClick={() => {
                 setIsOpen(false);
                 setPrompt("사과");
+                setExampleImage(null);
+                setExampleImagePreview(null);
                 setGeneratedImage(null);
                 setError(null);
+                if (fileInputRef.current) {
+                  fileInputRef.current.value = "";
+                }
               }}
               className="text-gray-400 hover:text-white transition-colors"
               aria-label="닫기"
@@ -107,7 +141,7 @@ export default function ImageGenerator() {
           </div>
 
           {/* 프롬프트 입력 영역 */}
-          <div className="p-4 border-b border-[#16213e]">
+          <div className="p-4 border-b border-[#16213e] space-y-3">
             <div className="flex gap-2">
               <input
                 type="text"
@@ -148,6 +182,62 @@ export default function ImageGenerator() {
                   "생성"
                 )}
               </button>
+            </div>
+
+            {/* 예시 이미지 선택 */}
+            <div className="space-y-2">
+              <label className="block text-xs text-gray-400">
+                예시 이미지 (선택사항)
+              </label>
+              {exampleImagePreview ? (
+                <div className="relative">
+                  <img
+                    src={exampleImagePreview}
+                    alt="Example preview"
+                    className="w-full max-h-32 object-contain rounded bg-[#16213e] p-2"
+                  />
+                  <button
+                    onClick={handleRemoveExampleImage}
+                    className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"
+                    aria-label="이미지 제거"
+                  >
+                    ×
+                  </button>
+                  <p className="text-xs text-gray-500 mt-1 truncate">
+                    {exampleImage.name}
+                  </p>
+                </div>
+              ) : (
+                <label className="block">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageSelect}
+                    disabled={isLoading}
+                    className="hidden"
+                  />
+                  <div className="border-2 border-dashed border-[#16213e] rounded px-4 py-3 text-center cursor-pointer hover:border-[#9b59b6] transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-6 w-6 mx-auto text-gray-400 mb-1"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                      />
+                    </svg>
+                    <span className="text-xs text-gray-400">
+                      이미지 파일 선택
+                    </span>
+                  </div>
+                </label>
+              )}
             </div>
           </div>
 
