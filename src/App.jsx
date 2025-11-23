@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import TodoList from "./components/TodoList";
 import Planet from "./components/Planet";
 import PlanetInfo from "./components/PlanetInfo";
+import { sendMessageToGemini } from "./services/gemini";
 
 // 🌞 태양/궤도 관련 상수
 const SUN_SIZE = 800; // 태양 이미지 크기(px)
@@ -23,6 +24,7 @@ function App() {
   const [selectedPlanetCategory, setSelectedPlanetCategory] = useState(null);
   const [planetPositions, setPlanetPositions] = useState({});
   const containerRef = useRef(null);
+  const prevCategoriesRef = useRef("");
 
   // 카테고리별로 완료된 할 일들을 그룹화
   const tasksByCategory = completedTasks.reduce((acc, task) => {
@@ -43,17 +45,31 @@ function App() {
   );
 
   // 모든 카테고리 목록 (categories, todos, completedTasks에서 추출)
-  const allCategories = Array.from(
-    new Set([
-      ...categories,
-      ...todos.map((t) => t.category),
-      ...completedTasks.map((t) => t.category),
-    ])
-  ).filter(Boolean);
+  // useMemo로 메모이제이션하여 불필요한 재계산 방지
+  const allCategories = useMemo(() => {
+    return Array.from(
+      new Set([
+        ...categories,
+        ...todos.map((t) => t.category),
+        ...completedTasks.map((t) => t.category),
+      ])
+    ).filter(Boolean);
+  }, [categories, todos, completedTasks]);
 
   // 🌞 태양 기준으로 행성 위치 생성 (새 카테고리만 랜덤 각도 배치)
   useEffect(() => {
     if (!containerRef.current || allCategories.length === 0) return;
+
+    // 카테고리 목록을 정렬하여 문자열로 변환하여 비교
+    const currentCategoriesString = [...allCategories].sort().join(",");
+
+    // 이전 카테고리와 동일하면 실행하지 않음 (무한 루프 방지)
+    if (prevCategoriesRef.current === currentCategoriesString) {
+      return;
+    }
+
+    // 현재 카테고리 목록 저장
+    prevCategoriesRef.current = currentCategoriesString;
 
     const container = containerRef.current;
     const width = container.clientWidth;
@@ -75,6 +91,11 @@ function App() {
       const next = { ...prev };
 
       const newCategories = allCategories.filter((cat) => !next[cat]);
+
+      // 새 카테고리가 없으면 상태 업데이트하지 않음 (불필요한 리렌더링 방지)
+      if (newCategories.length === 0) {
+        return prev;
+      }
 
       newCategories.forEach((category) => {
         const angle =
@@ -121,7 +142,7 @@ function App() {
     );
   };
 
-  const handleLaunch = () => {
+  const handleLaunch = async () => {
     const checkedTodos = todos.filter((todo) => todo.completed);
 
     if (checkedTodos.length === 0) return;
@@ -138,6 +159,13 @@ function App() {
 
     // 완료된 할 일들을 todos에서 제거
     setTodos((prev) => prev.filter((todo) => !todo.completed));
+
+    // LLM 호출: "안녕" 메시지 보내기
+    try {
+      await sendMessageToGemini("안녕");
+    } catch (error) {
+      console.error("LLM 호출 실패:", error);
+    }
   };
 
   const handlePlanetHover = (category) => {
