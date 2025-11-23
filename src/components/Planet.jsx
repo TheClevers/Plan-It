@@ -2,15 +2,9 @@ import planetCat from "../assets/planet_cat.png";
 import planetClean from "../assets/planet_clean.png";
 import planetStudy from "../assets/planet_study.png";
 
-interface PlanetProps {
-  category: string;
-  size: number;
-  onClick: () => void;
-}
-
-export default function Planet({ category, size, onClick }: PlanetProps) {
+export default function Planet({ category, size, onClick }) {
   // 카테고리별 이미지 매핑
-  const getPlanetImage = (category: string) => {
+  const getPlanetImage = (category) => {
     if (category.includes("냥냥") || category.includes("cat")) {
       return planetCat;
     } else if (category.includes("청소") || category.includes("clean")) {
@@ -38,7 +32,7 @@ export default function Planet({ category, size, onClick }: PlanetProps) {
   const colors = planetColors[colorIndex];
 
   // hex 색상을 rgba로 변환
-  const hexToRgba = (hex: string, alpha: number) => {
+  const hexToRgba = (hex, alpha) => {
     const r = parseInt(hex.slice(1, 3), 16);
     const g = parseInt(hex.slice(3, 5), 16);
     const b = parseInt(hex.slice(5, 7), 16);
@@ -129,3 +123,4 @@ export default function Planet({ category, size, onClick }: PlanetProps) {
     </div>
   );
 }
+

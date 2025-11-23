@@ -1,14 +1,4 @@
 import { useState } from "react";
-import type { Todo, Category } from "../types";
-
-interface TodoListProps {
-  todos: Todo[];
-  categories: Category[];
-  onAddTodo: (text: string, category: Category) => void;
-  onToggleTodo: (id: string) => void;
-  onLaunch: () => void;
-  onAddCategory: (category: Category) => void;
-}
 
 export default function TodoList({
   todos,
@@ -17,10 +7,8 @@ export default function TodoList({
   onToggleTodo,
   onLaunch,
   onAddCategory,
-}: TodoListProps) {
-  const [newTodoTexts, setNewTodoTexts] = useState<Record<Category, string>>(
-    {}
-  );
+}) {
+  const [newTodoTexts, setNewTodoTexts] = useState({});
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
 
@@ -31,9 +19,9 @@ export default function TodoList({
     }
     acc[todo.category].push(todo);
     return acc;
-  }, {} as Record<Category, Todo[]>);
+  }, {});
 
-  const handleAddTodo = (category: Category) => {
+  const handleAddTodo = (category) => {
     const text = newTodoTexts[category] || "";
     if (text.trim()) {
       onAddTodo(text, category);
@@ -65,7 +53,7 @@ export default function TodoList({
                 onClick={() => {
                   const input = document.getElementById(
                     `todo-input-${category}`
-                  ) as HTMLInputElement;
+                  );
                   if (input) {
                     input.focus();
                   }

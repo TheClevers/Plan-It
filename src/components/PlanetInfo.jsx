@@ -1,23 +1,8 @@
-import type { CompletedTask } from "../types";
-
-interface PlanetPosition {
-  category: string;
-  x: number;
-  y: number;
-}
-
-interface PlanetInfoProps {
-  category: string;
-  completedTasks: CompletedTask[];
-  planetPosition: PlanetPosition;
-  planetSize: number;
-}
-
 export default function PlanetInfo({
   category,
   completedTasks,
   planetSize,
-}: PlanetInfoProps) {
+}) {
   // 행성 오른쪽에 표시 (공간이 부족하면 왼쪽)
   const offset = planetSize / 2 + 20;
   const tooltipWidth = 300;
@@ -72,3 +57,4 @@ export default function PlanetInfo({
     </div>
   );
 }
+

@@ -2,21 +2,14 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import TodoList from "./components/TodoList";
 import Planet from "./components/Planet";
 import PlanetInfo from "./components/PlanetInfo";
-import type { Todo, CompletedTask, Category } from "./types";
-
-interface PlanetPosition {
-  category: Category;
-  x: number;
-  y: number;
-}
 
 // 🌞 태양/궤도 관련 상수
-const SUN_SIZE = 800;                    // 태양 이미지 크기(px)
-const SUN_RIGHT_OFFSET = -SUN_SIZE / 2;  // 화면 오른쪽 밖으로 절반 나가게
-const SUN_BOTTOM_OFFSET = 40;            // 아래에서 40px 위
-const PLANET_ORBIT_RADIUS = {"냥냥": 500, "청소": 750, "공부": 1000}; // 태양으로부터 거리
+const SUN_SIZE = 800; // 태양 이미지 크기(px)
+const SUN_RIGHT_OFFSET = -SUN_SIZE / 2; // 화면 오른쪽 밖으로 절반 나가게
+const SUN_BOTTOM_OFFSET = 40; // 아래에서 40px 위
+const PLANET_ORBIT_RADIUS = { 냥냥: 500, 청소: 750, 공부: 1000 }; // 태양으로부터 거리
 
-const getOrbitRadius = (category: string) => {
+const getOrbitRadius = (category) => {
   if (category.includes("냥냥")) return PLANET_ORBIT_RADIUS["냥냥"];
   if (category.includes("청소")) return PLANET_ORBIT_RADIUS["청소"];
   if (category.includes("공부")) return PLANET_ORBIT_RADIUS["공부"];
@@ -24,19 +17,12 @@ const getOrbitRadius = (category: string) => {
 };
 
 function App() {
-  const [todos, setTodos] = useState<Todo[]>([]);
-  const [completedTasks, setCompletedTasks] = useState<CompletedTask[]>([]);
-  const [categories, setCategories] = useState<Category[]>([
-    "냥냥성",
-    "청소별",
-    "공부별",
-  ]);
-  const [selectedPlanetCategory, setSelectedPlanetCategory] =
-    useState<Category | null>(null);
-  const [planetPositions, setPlanetPositions] = useState<
-    Record<Category, PlanetPosition>
-  >({});
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [todos, setTodos] = useState([]);
+  const [completedTasks, setCompletedTasks] = useState([]);
+  const [categories, setCategories] = useState(["냥냥성", "청소별", "공부별"]);
+  const [selectedPlanetCategory, setSelectedPlanetCategory] = useState(null);
+  const [planetPositions, setPlanetPositions] = useState({});
+  const containerRef = useRef(null);
 
   // 카테고리별로 완료된 할 일들을 그룹화
   const tasksByCategory = completedTasks.reduce((acc, task) => {
@@ -45,11 +31,11 @@ function App() {
     }
     acc[task.category].push(task);
     return acc;
-  }, {} as Record<Category, CompletedTask[]>);
+  }, {});
 
   // 카테고리별 행성 크기 계산 (완료된 할 일 개수에 비례)
   const getPlanetSize = useCallback(
-    (category: Category): number => {
+    (category) => {
       const count = tasksByCategory[category]?.length || 0;
       return Math.max(80, 80 + count * 10); // 최소 80px, 할 일 하나당 10px 증가
     },
@@ -86,15 +72,15 @@ function App() {
     setPlanetPositions((prev) => {
       // 이미 위치가 있는 카테고리는 그대로 두고,
       // 위치가 없는 새 카테고리만 랜덤으로 생성
-      const next: Record<Category, PlanetPosition> = { ...prev };
+      const next = { ...prev };
 
-      const newCategories = allCategories.filter(
-        (cat) => !next[cat]
-      );
+      const newCategories = allCategories.filter((cat) => !next[cat]);
 
       newCategories.forEach((category) => {
-        const angle = Math.random() * (13/12 * Math.PI - 11/12 * Math.PI) + 11/12 * Math.PI; // 11/12π ~ 13/12π 사이 랜덤 값
-        const radius = getOrbitRadius(category)
+        const angle =
+          Math.random() * ((13 / 12) * Math.PI - (11 / 12) * Math.PI) +
+          (11 / 12) * Math.PI; // 11/12π ~ 13/12π 사이 랜덤 값
+        const radius = getOrbitRadius(category);
         const x = sunCenterX + Math.cos(angle) * radius;
         const y = sunCenterY + Math.sin(angle) * radius;
 
@@ -105,15 +91,15 @@ function App() {
     });
   }, [allCategories]);
 
-  const handleAddCategory = (category: Category) => {
+  const handleAddCategory = (category) => {
     const trimmed = category.trim();
     if (trimmed && !categories.includes(trimmed)) {
       setCategories([...categories, trimmed]);
     }
   };
 
-  const handleAddTodo = (text: string, category: Category) => {
-    const newTodo: Todo = {
+  const handleAddTodo = (text, category) => {
+    const newTodo = {
       id: Date.now().toString(),
       text,
       category,
@@ -127,7 +113,7 @@ function App() {
     }
   };
 
-  const handleToggleTodo = (id: string) => {
+  const handleToggleTodo = (id) => {
     setTodos((prev) =>
       prev.map((todo) =>
         todo.id === id ? { ...todo, completed: !todo.completed } : todo
@@ -141,7 +127,7 @@ function App() {
     if (checkedTodos.length === 0) return;
 
     // 완료된 할 일들을 completedTasks에 추가
-    const newCompletedTasks: CompletedTask[] = checkedTodos.map((todo) => ({
+    const newCompletedTasks = checkedTodos.map((todo) => ({
       id: todo.id,
       text: todo.text,
       category: todo.category,
@@ -154,7 +140,7 @@ function App() {
     setTodos((prev) => prev.filter((todo) => !todo.completed));
   };
 
-  const handlePlanetHover = (category: Category) => {
+  const handlePlanetHover = (category) => {
     setSelectedPlanetCategory(category);
   };
 
