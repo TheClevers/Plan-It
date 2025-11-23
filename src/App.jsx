@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import TodoList from "./components/TodoList";
 import Planet from "./components/Planet";
 import PlanetInfo from "./components/PlanetInfo";
+import LLMChat from "./components/LLMChat";
+import ImageGenerator from "./components/ImageGenerator";
 import { sendMessageToGemini } from "./services/gemini";
 
 // 🌞 태양/궤도 관련 상수
@@ -292,6 +294,12 @@ function App() {
           })}
         </div>
       </div>
+
+      {/* LLM 채팅 (우측 하단 floating) */}
+      <LLMChat />
+
+      {/* 이미지 생성 (우측 하단 floating, LLM 채팅 옆) */}
+      <ImageGenerator />
     </div>
   );
 }
