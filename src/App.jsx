@@ -2,9 +2,9 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import TodoList from "./components/TodoList";
 import Planet from "./components/Planet";
 import PlanetInfo from "./components/PlanetInfo";
-// import LLMChat from "./components/LLMChat";
-// import ImageGenerator from "./components/ImageGenerator";
-// import { sendMessageToGemini } from "./services/gemini";
+import LLMChat from "./components/LLMChat";
+import ImageGenerator from "./components/ImageGenerator";
+import { sendMessageToGemini } from "./services/gemini";
 
 // 🌞 태양/궤도 관련 상수
 const SUN_SIZE = 800; // 태양 이미지 크기(px)
@@ -197,22 +197,20 @@ function App({ onLogout }) {
     return `${year}. ${month}. ${date}. ${dayName}`;
   };
 
-return (
-  <div className="flex h-screen overflow-hidden relative">
-
-    {/* Logout 버튼 */}
-    <button
-      onClick={onLogout}
-      className="
+  return (
+    <div className="flex h-screen overflow-hidden relative">
+      {/* Logout 버튼 */}
+      <button
+        onClick={onLogout}
+        className="
         absolute top-5 right-5 z-50
         text-cyan-300 font-semibold tracking-wide
         transition
         hover:text-cyan-200 hover:shadow-[0_0_4px_rgb(34,211,238)]
       "
-    >
-      Logout
-    </button>
-
+      >
+        Logout
+      </button>
 
       {/* 왼쪽 패널 */}
       <div className="w-[300px] relative bg-[#0a0a1a]">
@@ -223,15 +221,14 @@ return (
           </h1>
           <p className="text-white text-sm text-gray-300">{getTodayDate()}</p>
         </div>
-
-         TodoList - 떠있는 카드
+        TodoList - 떠있는 카드
         <div className="absolute top-32 left-5 right-5 bottom-5">
           <TodoList
             todos={todos}
             categories={allCategories}
             onAddTodo={handleAddTodo}
             onToggleTodo={handleToggleTodo}
-            onLaunch={()=>{}}
+            onLaunch={() => {}}
             onAddCategory={handleAddCategory}
           />
         </div>
@@ -311,10 +308,10 @@ return (
       </div>
 
       {/*/!* LLM 채팅 (우측 하단 floating) *!/*/}
-      {/*<LLMChat />*/}
-      
+      <LLMChat />
+
       {/*/!* 이미지 생성 (우측 하단 floating, LLM 채팅 옆) *!/*/}
-      {/*<ImageGenerator />*/}
+      <ImageGenerator />
     </div>
   );
 }
