@@ -1,10 +1,10 @@
-//import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 
 // API 키는 환경변수에서 가져옵니다
 // .env 파일에 GEMINI_API_KEY=your_api_key_here 형식으로 설정하세요
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
-//const ai = new GoogleGenAI({ apiKey });
+const ai = new GoogleGenAI({ apiKey });
 
 /**
  * Gemini LLM에 메시지를 보내고 응답을 받는 함수

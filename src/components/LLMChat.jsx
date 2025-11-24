@@ -1,5 +1,5 @@
 import { useState } from "react";
-//import { sendMessageToGemini } from "../services/gemini";
+import { sendMessageToGemini } from "../services/gemini";
 
 export default function LLMChat() {
   const [isOpen, setIsOpen] = useState(false);

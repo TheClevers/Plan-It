@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-//import { generateImage } from "../services/geminiImage";
+import { generateImage } from "../services/geminiImage";
 
 export default function ImageGenerator() {
   const [isOpen, setIsOpen] = useState(false);

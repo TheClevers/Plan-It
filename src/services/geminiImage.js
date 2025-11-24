@@ -1,9 +1,9 @@
-//import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 
 // API 키는 환경변수에서 가져옵니다
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
-//const ai = new GoogleGenAI({ apiKey });
+const ai = new GoogleGenAI({ apiKey });
 
 /**
  * 이미지 파일을 base64로 변환하는 함수
