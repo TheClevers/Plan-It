@@ -85,6 +85,23 @@ export default function Login({ onLogin }) {
           Sign Up
         </button>
 
+        {/* 로그인 스킵 */}
+        <button
+          onClick={onLogin}
+          className="
+            w-full 
+            text-white
+             border border-cyan-300
+            hover:bg-[rgba(255,255,255,0.05)]
+            py-2
+            rounded
+            mt-1
+            transition
+            text-sm
+          "
+        >
+          Skip Login (개발용)
+        </button>
       </div>
     </div>
   );

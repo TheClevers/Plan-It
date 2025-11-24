@@ -1,4 +1,10 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
 import TodoList from "./components/TodoList";
 import Planet from "./components/Planet";
 import PlanetInfo from "./components/PlanetInfo";
@@ -6,18 +12,49 @@ import LLMChat from "./components/LLMChat";
 import ImageGenerator from "./components/ImageGenerator";
 import { sendMessageToGemini } from "./services/gemini";
 
-// 🌞 태양/궤도 관련 상수
+// 태양 관련 상수
 const SUN_SIZE = 800; // 태양 이미지 크기(px)
-const SUN_RIGHT_OFFSET = -SUN_SIZE / 2; // 화면 오른쪽 밖으로 절반 나가게
+const SUN_LEFT_OFFSET = (-SUN_SIZE * 3) / 4; // 화면 왼쪽 밖으로 3/4 나가게
 const SUN_BOTTOM_OFFSET = 40; // 아래에서 40px 위
-const PLANET_ORBIT_RADIUS = { 냥냥: 500, 청소: 750, 공부: 1000 }; // 태양으로부터 거리
+
+// 행성 관련 상수
+const PLANET_ORBIT_RADIUS_OPTION = [350, 500, 750, 1000, 1250]
+const PLANET_ORBIT_RADIUS = {
+  냥냥성: 500,
+  청소별: 750,
+  공부별: 1000,
+}; // 태양으로부터 거리
+const PLANET_EXIST_ANGLE = Math.PI / 12; // 행성이 태양으로부터 존재할 수 있는 각도 (-π/n ~ π/n)
+const MAXIMUM_PLANET_SIZE = 150;
+const MINIMUM_PLANET_SIZE = 80;
+
+function getWeightedRandomRadius() {
+  const weights = PLANET_ORBIT_RADIUS_OPTION.map((_, i) => i + 1); 
+  const total = weights.reduce((a, b) => a + b, 0);
+  const random = Math.random() * total;
+
+  let sum = 0;
+  for (let i = 0; i < weights.length; i++) {
+    sum += weights[i];
+    if (random < sum) {
+      return PLANET_ORBIT_RADIUS_OPTION[i];
+    }
+  }
+}
 
 const getOrbitRadius = (category) => {
-  if (category.includes("냥냥")) return PLANET_ORBIT_RADIUS["냥냥"];
-  if (category.includes("청소")) return PLANET_ORBIT_RADIUS["청소"];
-  if (category.includes("공부")) return PLANET_ORBIT_RADIUS["공부"];
-  return 500; // 디폴트
+  if (!(category in PLANET_ORBIT_RADIUS)) {
+    // 새로운 카테고리면 랜덤값으로 설정
+    PLANET_ORBIT_RADIUS[category] = getWeightedRandomRadius();
+  }
+  return PLANET_ORBIT_RADIUS[category];
 };
+
+function calDistance(r1, theta1, r2, theta2) {
+  return Math.sqrt(
+    r1 * r1 + r2 * r2 - 2 * r1 * r2 * Math.cos(theta1 - theta2)
+  );
+}
 
 function App({ onLogout }) {
   const [todos, setTodos] = useState([]);
@@ -27,6 +64,7 @@ function App({ onLogout }) {
   const [planetPositions, setPlanetPositions] = useState({});
   const containerRef = useRef(null);
   const prevCategoriesRef = useRef("");
+  const [sunCenter, setSunCenter] = useState({ x: 0, y: 0 });
 
   // 카테고리별로 완료된 할 일들을 그룹화
   const tasksByCategory = completedTasks.reduce((acc, task) => {
@@ -37,11 +75,18 @@ function App({ onLogout }) {
     return acc;
   }, {});
 
+  function oneMinusExp(x) {
+    return 1 - Math.exp(-x);
+  }
+
   // 카테고리별 행성 크기 계산 (완료된 할 일 개수에 비례)
   const getPlanetSize = useCallback(
     (category) => {
       const count = tasksByCategory[category]?.length || 0;
-      return Math.max(80, 80 + count * 10); // 최소 80px, 할 일 하나당 10px 증가
+      return Math.max(
+        MINIMUM_PLANET_SIZE,
+        MAXIMUM_PLANET_SIZE * oneMinusExp(count)
+      );
     },
     [tasksByCategory]
   );
@@ -58,7 +103,16 @@ function App({ onLogout }) {
     ).filter(Boolean);
   }, [categories, todos, completedTasks]);
 
-  // 🌞 태양 기준으로 행성 위치 생성 (새 카테고리만 랜덤 각도 배치)
+  // 궤도 반지름 목록 (중복 제거)
+  const uniqueRadii = useMemo(() => {
+    const radiiSet = new Set();
+    allCategories.forEach((category) => {
+      radiiSet.add(getOrbitRadius(category));
+    });
+    return Array.from(radiiSet);
+  }, [allCategories]);
+
+  // 태양 기준으로 행성 위치 생성 (새 카테고리만 랜덤 각도 배치)
   useEffect(() => {
     if (!containerRef.current || allCategories.length === 0) return;
 
@@ -79,13 +133,16 @@ function App({ onLogout }) {
 
     if (width <= 0 || height <= 0) return;
 
-    // 태양의 left/top 계산 (right/bottom 기준 역산)
-    const sunLeft = width - SUN_SIZE - SUN_RIGHT_OFFSET;
+    // 태양의 left/top 계산
+    const sunLeft = SUN_LEFT_OFFSET;
     const sunTop = height - SUN_SIZE - SUN_BOTTOM_OFFSET;
 
     // 태양 중심 좌표
     const sunCenterX = sunLeft + SUN_SIZE / 2;
     const sunCenterY = sunTop + SUN_SIZE / 2;
+
+    // 궤도/행성 렌더링에서 쓸 수 있도록 상태로 저장
+    setSunCenter({ x: sunCenterX, y: sunCenterY });
 
     setPlanetPositions((prev) => {
       // 이미 위치가 있는 카테고리는 그대로 두고,
@@ -100,10 +157,50 @@ function App({ onLogout }) {
       }
 
       newCategories.forEach((category) => {
-        const angle =
-          Math.random() * ((13 / 12) * Math.PI - (11 / 12) * Math.PI) +
-          (11 / 12) * Math.PI; // 11/12π ~ 13/12π 사이 랜덤 값
         const radius = getOrbitRadius(category);
+
+        let valid = false;
+        let angle = 0;
+        let attempt = 0;
+        const maxAttempts = 100; // 무한 루프 방지
+
+        while (!valid && attempt < maxAttempts) {
+          // 랜덤 각도 (-PLANET_EXIST_ANGLE ~ +PLANET_EXIST_ANGLE)
+          angle =
+            Math.random() * (2 * PLANET_EXIST_ANGLE) - PLANET_EXIST_ANGLE;
+
+          const newSize = getPlanetSize(category);
+          const newR = radius;
+
+          valid = true;
+
+          // 기존 행성들과 거리 검사
+          // TODO: 같은 궤도 내의 행성들만 검사하게끔 바꾸면 더 효율적임
+          for (const otherCat in next) {
+            const other = next[otherCat];
+            const otherAngle = Math.atan2(
+              other.y - sunCenterY,
+              other.x - sunCenterX
+            );
+            const otherR = Math.sqrt(
+              Math.pow(other.x - sunCenterX, 2) +
+                Math.pow(other.y - sunCenterY, 2)
+            );
+
+            const dist = calDistance(newR, angle, otherR, otherAngle);
+            const minDist =
+              (getPlanetSize(otherCat) + newSize) / 2 + 20; // 여유 간격
+
+            if (dist < minDist) {
+              valid = false;
+              break;
+            }
+          }
+
+          attempt++;
+        }
+
+        // 실패 시 그냥 마지막 값 사용
         const x = sunCenterX + Math.cos(angle) * radius;
         const y = sunCenterY + Math.sin(angle) * radius;
 
@@ -112,7 +209,7 @@ function App({ onLogout }) {
 
       return next;
     });
-  }, [allCategories]);
+  }, [allCategories, getPlanetSize]);
 
   const handleAddCategory = (category) => {
     const trimmed = category.trim();
@@ -144,31 +241,31 @@ function App({ onLogout }) {
     );
   };
 
-  // const handleLaunch = async () => {
-  //   const checkedTodos = todos.filter((todo) => todo.completed);
-  //
-  //   if (checkedTodos.length === 0) return;
-  //
-  //   // 완료된 할 일들을 completedTasks에 추가
-  //   const newCompletedTasks = checkedTodos.map((todo) => ({
-  //     id: todo.id,
-  //     text: todo.text,
-  //     category: todo.category,
-  //     completedAt: new Date(),
-  //   }));
-  //
-  //   setCompletedTasks((prev) => [...prev, ...newCompletedTasks]);
-  //
-  //   // 완료된 할 일들을 todos에서 제거
-  //   setTodos((prev) => prev.filter((todo) => !todo.completed));
-  //
-  //   // LLM 호출: "안녕" 메시지 보내기
-  //   try {
-  //     await sendMessageToGemini("안녕");
-  //   } catch (error) {
-  //     console.error("LLM 호출 실패:", error);
-  //   }
-  // };
+  const handleLaunch = async () => {
+    const checkedTodos = todos.filter((todo) => todo.completed);
+
+    if (checkedTodos.length === 0) return;
+
+    // 완료된 할 일들을 completedTasks에 추가
+    const newCompletedTasks = checkedTodos.map((todo) => ({
+      id: todo.id,
+      text: todo.text,
+      category: todo.category,
+      completedAt: new Date(),
+    }));
+
+    setCompletedTasks((prev) => [...prev, ...newCompletedTasks]);
+
+    // 완료된 할 일들을 todos에서 제거
+    setTodos((prev) => prev.filter((todo) => !todo.completed));
+
+    // // LLM 호출 예시
+    // try {
+    //   await sendMessageToGemini("안녕");
+    // } catch (error) {
+    //   console.error("LLM 호출 실패:", error);
+    // }
+  };
 
   const handlePlanetHover = (category) => {
     setSelectedPlanetCategory(category);
@@ -221,14 +318,14 @@ function App({ onLogout }) {
           </h1>
           <p className="text-white text-sm text-gray-300">{getTodayDate()}</p>
         </div>
-        TodoList - 떠있는 카드
+        {/* TodoList - 떠있는 카드 */}
         <div className="absolute top-32 left-5 right-5 bottom-5">
           <TodoList
             todos={todos}
             categories={allCategories}
             onAddTodo={handleAddTodo}
             onToggleTodo={handleToggleTodo}
-            onLaunch={() => {}}
+            onLaunch={handleLaunch}
             onAddCategory={handleAddCategory}
           />
         </div>
@@ -240,15 +337,15 @@ function App({ onLogout }) {
         className="flex-1 space-background relative overflow-auto p-10"
         style={{ minHeight: "100vh" }}
       >
-        {/* 🌞 태양 이미지 — 오른쪽 아래, 화면 밖으로 절반 나가게 */}
+        {/* 태양 이미지 — 왼쪽 중앙, 화면 밖으로 나가게 */}
         <img
           src="/src/assets/sun.png"
           alt="sun"
-          className="absolute pointer-events-none z-0"
+          className="absolute pointer-events-none z-0 sun-rotate"
           style={{
             width: `${SUN_SIZE}px`,
             height: `${SUN_SIZE}px`,
-            right: SUN_RIGHT_OFFSET,
+            left: SUN_LEFT_OFFSET,
             bottom: SUN_BOTTOM_OFFSET,
             filter: `
               drop-shadow(0 0 40px rgba(255, 200, 50, 0.8))
@@ -258,11 +355,29 @@ function App({ onLogout }) {
           }}
         />
 
-        {/* 행성들 */}
+        {/* 행성들 & 궤도 */}
         <div
           className="relative w-full h-full"
           style={{ minHeight: "calc(100vh - 80px)" }}
         >
+          {/* 궤도 원들 (각 반지름 당 한 번만) */}
+          {uniqueRadii.map((radius) => (
+            <div
+              key={radius}
+              className="absolute rounded-full pointer-events-none"
+              style={{
+                width: `${radius * 2}px`,
+                height: `${radius * 2}px`,
+                left: `${sunCenter.x - radius}px`,
+                top: `${sunCenter.y - radius}px`,
+                border: "2px solid rgba(80, 180, 255, 0.6)",
+                boxShadow: "0 0 6px rgba(80, 180, 255, 0.5)",
+                zIndex: 1,
+              }}
+            />
+          ))}
+
+          {/* 행성들 */}
           {allCategories.map((category) => {
             const position = planetPositions[category];
             if (!position) return null;
@@ -307,10 +422,10 @@ function App({ onLogout }) {
         </div>
       </div>
 
-      {/*/!* LLM 채팅 (우측 하단 floating) *!/*/}
+      {/* LLM 채팅 (우측 하단 floating) */}
       <LLMChat />
 
-      {/*/!* 이미지 생성 (우측 하단 floating, LLM 채팅 옆) *!/*/}
+      {/* 이미지 생성 (우측 하단 floating, LLM 채팅 옆) */}
       <ImageGenerator />
     </div>
   );

@@ -142,3 +142,18 @@
       );
   }
 }
+
+/* 태양 회전 효과 */
+@keyframes sun-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.sun-rotate {
+  animation: sun-rotate 120s linear infinite;
+  transform-origin: 50% 50%;
+}
