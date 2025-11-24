@@ -19,7 +19,7 @@ const getOrbitRadius = (category) => {
   return 500; // 디폴트
 };
 
-function App() {
+function App({ onLogout }) {
   const [todos, setTodos] = useState([]);
   const [completedTasks, setCompletedTasks] = useState([]);
   const [categories, setCategories] = useState(["냥냥성", "청소별", "공부별"]);
@@ -144,31 +144,31 @@ function App() {
     );
   };
 
-  const handleLaunch = async () => {
-    const checkedTodos = todos.filter((todo) => todo.completed);
-
-    if (checkedTodos.length === 0) return;
-
-    // 완료된 할 일들을 completedTasks에 추가
-    const newCompletedTasks = checkedTodos.map((todo) => ({
-      id: todo.id,
-      text: todo.text,
-      category: todo.category,
-      completedAt: new Date(),
-    }));
-
-    setCompletedTasks((prev) => [...prev, ...newCompletedTasks]);
-
-    // 완료된 할 일들을 todos에서 제거
-    setTodos((prev) => prev.filter((todo) => !todo.completed));
-
-    // LLM 호출: "안녕" 메시지 보내기
-    try {
-      await sendMessageToGemini("안녕");
-    } catch (error) {
-      console.error("LLM 호출 실패:", error);
-    }
-  };
+  // const handleLaunch = async () => {
+  //   const checkedTodos = todos.filter((todo) => todo.completed);
+  //
+  //   if (checkedTodos.length === 0) return;
+  //
+  //   // 완료된 할 일들을 completedTasks에 추가
+  //   const newCompletedTasks = checkedTodos.map((todo) => ({
+  //     id: todo.id,
+  //     text: todo.text,
+  //     category: todo.category,
+  //     completedAt: new Date(),
+  //   }));
+  //
+  //   setCompletedTasks((prev) => [...prev, ...newCompletedTasks]);
+  //
+  //   // 완료된 할 일들을 todos에서 제거
+  //   setTodos((prev) => prev.filter((todo) => !todo.completed));
+  //
+  //   // LLM 호출: "안녕" 메시지 보내기
+  //   try {
+  //     await sendMessageToGemini("안녕");
+  //   } catch (error) {
+  //     console.error("LLM 호출 실패:", error);
+  //   }
+  // };
 
   const handlePlanetHover = (category) => {
     setSelectedPlanetCategory(category);
@@ -198,7 +198,20 @@ function App() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen overflow-hidden relative">
+      {/* Logout 버튼 */}
+      <button
+        onClick={onLogout}
+        className="
+        absolute top-5 right-5 z-50
+        text-cyan-300 font-semibold tracking-wide
+        transition
+        hover:text-cyan-200 hover:shadow-[0_0_4px_rgb(34,211,238)]
+      "
+      >
+        Logout
+      </button>
+
       {/* 왼쪽 패널 */}
       <div className="w-[300px] relative bg-[#0a0a1a]">
         {/* 타이틀 영역 - 떠있는 카드 */}
@@ -208,15 +221,14 @@ function App() {
           </h1>
           <p className="text-white text-sm text-gray-300">{getTodayDate()}</p>
         </div>
-
-        {/* TodoList - 떠있는 카드 */}
+        TodoList - 떠있는 카드
         <div className="absolute top-32 left-5 right-5 bottom-5">
           <TodoList
             todos={todos}
             categories={allCategories}
             onAddTodo={handleAddTodo}
             onToggleTodo={handleToggleTodo}
-            onLaunch={handleLaunch}
+            onLaunch={() => {}}
             onAddCategory={handleAddCategory}
           />
         </div>
@@ -295,10 +307,10 @@ function App() {
         </div>
       </div>
 
-      {/* LLM 채팅 (우측 하단 floating) */}
+      {/*/!* LLM 채팅 (우측 하단 floating) *!/*/}
       <LLMChat />
 
-      {/* 이미지 생성 (우측 하단 floating, LLM 채팅 옆) */}
+      {/*/!* 이미지 생성 (우측 하단 floating, LLM 채팅 옆) *!/*/}
       <ImageGenerator />
     </div>
   );
