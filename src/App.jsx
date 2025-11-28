@@ -1,10 +1,5 @@
-import {
-  useState,
-  useEffect,
-  useRef,
-  useCallback,
-  useMemo,
-} from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import TodoList from "./components/TodoList";
 import Planet from "./components/Planet";
 import PlanetInfo from "./components/PlanetInfo";
@@ -18,7 +13,7 @@ const SUN_LEFT_OFFSET = (-SUN_SIZE * 3) / 4; // 화면 왼쪽 밖으로 3/4 나�
 const SUN_BOTTOM_OFFSET = 40; // 아래에서 40px 위
 
 // 행성 관련 상수
-const PLANET_ORBIT_RADIUS_OPTION = [350, 500, 750, 1000, 1250]
+const PLANET_ORBIT_RADIUS_OPTION = [350, 500, 750, 1000, 1250];
 const PLANET_ORBIT_RADIUS = {
   냥냥성: 500,
   청소별: 750,
@@ -29,7 +24,7 @@ const MAXIMUM_PLANET_SIZE = 150;
 const MINIMUM_PLANET_SIZE = 80;
 
 function getWeightedRandomRadius() {
-  const weights = PLANET_ORBIT_RADIUS_OPTION.map((_, i) => i + 1); 
+  const weights = PLANET_ORBIT_RADIUS_OPTION.map((_, i) => i + 1);
   const total = weights.reduce((a, b) => a + b, 0);
   const random = Math.random() * total;
 
@@ -51,12 +46,11 @@ const getOrbitRadius = (category) => {
 };
 
 function calDistance(r1, theta1, r2, theta2) {
-  return Math.sqrt(
-    r1 * r1 + r2 * r2 - 2 * r1 * r2 * Math.cos(theta1 - theta2)
-  );
+  return Math.sqrt(r1 * r1 + r2 * r2 - 2 * r1 * r2 * Math.cos(theta1 - theta2));
 }
 
-function App({ onLogout }) {
+function App() {
+  const navigate = useNavigate();
   const [todos, setTodos] = useState([]);
   const [completedTasks, setCompletedTasks] = useState([]);
   const [categories, setCategories] = useState(["냥냥성", "청소별", "공부별"]);
@@ -65,6 +59,10 @@ function App({ onLogout }) {
   const containerRef = useRef(null);
   const prevCategoriesRef = useRef("");
   const [sunCenter, setSunCenter] = useState({ x: 0, y: 0 });
+
+  const handleLogout = () => {
+    navigate("/login");
+  };
 
   // 카테고리별로 완료된 할 일들을 그룹화
   const tasksByCategory = completedTasks.reduce((acc, task) => {
@@ -166,8 +164,7 @@ function App({ onLogout }) {
 
         while (!valid && attempt < maxAttempts) {
           // 랜덤 각도 (-PLANET_EXIST_ANGLE ~ +PLANET_EXIST_ANGLE)
-          angle =
-            Math.random() * (2 * PLANET_EXIST_ANGLE) - PLANET_EXIST_ANGLE;
+          angle = Math.random() * (2 * PLANET_EXIST_ANGLE) - PLANET_EXIST_ANGLE;
 
           const newSize = getPlanetSize(category);
           const newR = radius;
@@ -188,8 +185,7 @@ function App({ onLogout }) {
             );
 
             const dist = calDistance(newR, angle, otherR, otherAngle);
-            const minDist =
-              (getPlanetSize(otherCat) + newSize) / 2 + 20; // 여유 간격
+            const minDist = (getPlanetSize(otherCat) + newSize) / 2 + 20; // 여유 간격
 
             if (dist < minDist) {
               valid = false;
@@ -298,7 +294,7 @@ function App({ onLogout }) {
     <div className="flex h-screen overflow-hidden relative">
       {/* Logout 버튼 */}
       <button
-        onClick={onLogout}
+        onClick={handleLogout}
         className="
         absolute top-5 right-5 z-50
         text-cyan-300 font-semibold tracking-wide
