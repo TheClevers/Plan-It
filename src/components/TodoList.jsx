@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Calendar from "../assets/svg/Calendar";
 
 export default function TodoList({
   todos,
@@ -11,6 +12,16 @@ export default function TodoList({
   const [newTodoTexts, setNewTodoTexts] = useState({});
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
+
+  // 날짜 포맷팅 함수
+  const getDateString = () => {
+    const today = new Date();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const date = String(today.getDate()).padStart(2, "0");
+    const dayNames = ["일", "월", "화", "수", "목", "금", "토"];
+    const dayName = dayNames[today.getDay()];
+    return `${month}.${date} (${dayName}) 일지`;
+  };
 
   // 카테고리별로 todos 그룹화
   const todosByCategory = todos.reduce((acc, todo) => {
@@ -41,6 +52,12 @@ export default function TodoList({
 
   return (
     <div className="h-full bg-[#1a1a2e] p-5 flex flex-col overflow-y-auto rounded-lg shadow-2xl">
+      {/* 헤더 */}
+      <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-700">
+        <h2 className="text-white text-sm font-medium">{getDateString()}</h2>
+        <Calendar className="w-5 h-5 text-cyan-300" />
+      </div>
+
       <div className="flex-1 overflow-y-auto mb-5 space-y-4">
         {categories.map((category) => (
           <div key={category} className="mb-4">
