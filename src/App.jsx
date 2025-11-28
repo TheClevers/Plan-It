@@ -5,7 +5,6 @@ import Planet from "./components/Planet";
 import PlanetInfo from "./components/PlanetInfo";
 import LLMChat from "./components/LLMChat";
 import ImageGenerator from "./components/ImageGenerator";
-import { sendMessageToGemini } from "./services/gemini";
 
 // 태양 관련 상수
 const SUN_SIZE = 800; // 태양 이미지 크기(px)
