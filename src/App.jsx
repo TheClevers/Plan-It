@@ -408,6 +408,33 @@ function App() {
     });
   };
 
+  const handleDeletePlanet = (category) => {
+    // 카테고리 제거
+    setCategories((prev) => prev.filter((cat) => cat !== category));
+
+    // 해당 카테고리의 할 일들 제거
+    setTodos((prev) => prev.filter((todo) => todo.category !== category));
+
+    // 해당 카테고리의 완료된 할 일들 제거
+    setCompletedTasks((prev) =>
+      prev.filter((task) => task.category !== category)
+    );
+
+    // 행성 위치 제거
+    setPlanetPositions((prev) => {
+      const newPositions = { ...prev };
+      delete newPositions[category];
+      return newPositions;
+    });
+
+    // 모달 닫기
+    setClickedPlanetCategories((prev) => {
+      const newSet = new Set(prev);
+      newSet.delete(category);
+      return newSet;
+    });
+  };
+
   return (
     <div className="w-full h-screen overflow-hidden relative">
       {/* Logout 버튼 */}
@@ -575,6 +602,7 @@ function App() {
             planetPosition={planetPositions[category]}
             planetSize={getPlanetSize(category)}
             onClose={() => handleCloseModal(category)}
+            onDelete={() => handleDeletePlanet(category)}
           />
         );
       })}

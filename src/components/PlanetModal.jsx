@@ -6,6 +6,7 @@ export default function PlanetModal({
   planetPosition,
   planetSize,
   onClose,
+  onDelete,
 }) {
   const modalRef = useRef(null);
   const modalWidth = 400;
@@ -164,7 +165,7 @@ export default function PlanetModal({
             <h3 className="text-[#4a90e2] text-sm font-semibold mb-3">
               개발이력
             </h3>
-            <div className="space-y-2 max-h-[300px] overflow-y-auto">
+            <div className="space-y-2">
               {sortedTasks.length === 0 ? (
                 <p className="text-gray-500 text-center p-3 text-sm">
                   아직 개발 이력이 없습니다.
@@ -184,6 +185,23 @@ export default function PlanetModal({
               )}
             </div>
           </div>
+        </div>
+
+        {/* 하단 삭제 버튼 */}
+        <div className="px-5 pb-4 pt-2 border-t border-gray-700">
+          <button
+            onClick={() => {
+              if (window.confirm(`${category} 행성을 파괴하시겠습니까?`)) {
+                if (onDelete) {
+                  onDelete();
+                }
+                onClose();
+              }
+            }}
+            className="w-full py-1.5 px-3 bg-[#16213e] hover:bg-[#1e2a4a] text-red-400 hover:text-red-300 text-xs font-medium rounded transition-all"
+          >
+            행성 파괴
+          </button>
         </div>
       </div>
     </>
