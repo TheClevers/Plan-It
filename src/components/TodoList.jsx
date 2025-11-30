@@ -159,6 +159,7 @@ export default function TodoList({
 
   // 캘린더 패널 넓이 (고정)
   const CALENDAR_WIDTH = 320;
+  const TODO_WIDTH = 300;
 
   return (
     <div
@@ -166,6 +167,8 @@ export default function TodoList({
       style={{
         boxShadow:
           "0 0 40px rgba(80, 200, 255, 0.1), inset 0 0 60px rgba(80, 200, 255, 0.05)",
+        width: isCalendarOpen ? TODO_WIDTH + CALENDAR_WIDTH : TODO_WIDTH,
+        //transition: "width 0.3s ease", // 부드럽게 늘어나게
       }}
     >
       {/* 헤더 */}
@@ -579,7 +582,7 @@ export default function TodoList({
               날짜 선택
             </div>
 
-            <div className="flex-1 overflow-y-auto custom-calendar-wrapper">
+            <div className="flex-1 flex custom-calendar-wrapper">
               <ReactCalendar
                 onChange={(date) => setTempDate(date)}
                 value={tempDate}
@@ -618,6 +621,11 @@ export default function TodoList({
 
       {/* 발사 버튼 영역 */}
       <div className="pt-5 border-t border-cyan-500/30">
+      <div
+    style={{
+      width: isCalendarOpen ? `calc(100% - ${CALENDAR_WIDTH}px)` : "100%",
+    }}
+  >
         <button
           onClick={onLaunch}
           disabled={checkedCount === 0 || isLaunching}
@@ -664,6 +672,7 @@ export default function TodoList({
             </span>
           )}
         </button>
+        </div>
       </div>
     </div>
   );
