@@ -1,16 +1,22 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Logo from "./assets/Logo.png";
 
-export default function Login({ onLogin }) {
+export default function Login() {
   const [id, setId] = useState("");
   const [pw, setPw] = useState("");
+  const navigate = useNavigate();
 
   const handleSubmit = () => {
     if (id.trim() !== "" && pw.trim() !== "") {
-      onLogin();
+      navigate("/main");
     } else {
       alert("아이디와 비밀번호를 입력해주세요.");
     }
+  };
+
+  const handleSkipLogin = () => {
+    navigate("/main");
   };
 
   return (
@@ -55,24 +61,18 @@ export default function Login({ onLogin }) {
         {/* 로그인 버튼 */}
         <button
           onClick={handleSubmit}
-          className=<button
-  onClick={handleSubmit}
-  className="
-    w-full 
-    bg-[#1fb8d6]
-    hover:bg-[#33c7e6]
-    text-black 
-    font-bold 
-    py-2 
-    rounded 
-    transition 
-    mb-2
-    shadow-[0_0_4px_rgb(31,184,214)]
-  "
->
-  Login
-</button>
-
+          className="
+            w-full 
+            bg-[#1fb8d6]
+            hover:bg-[#33c7e6]
+            text-black 
+            font-bold 
+            py-2 
+            rounded 
+            transition 
+            mb-2
+            shadow-[0_0_4px_rgb(31,184,214)]
+          "
         >
           Login
         </button>
@@ -87,7 +87,7 @@ export default function Login({ onLogin }) {
 
         {/* 로그인 스킵 */}
         <button
-          onClick={onLogin}
+          onClick={handleSkipLogin}
           className="
             w-full 
             text-white

@@ -1,16 +1,12 @@
-import {
-  useState,
-  useEffect,
-  useRef,
-  useCallback,
-  useMemo,
-} from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import TodoList from "./components/TodoList";
 import Planet from "./components/Planet";
 import PlanetInfo from "./components/PlanetInfo";
 import LLMChat from "./components/LLMChat";
 import ImageGenerator from "./components/ImageGenerator";
-import { sendMessageToGemini } from "./services/gemini";
+import ChevronRight from "./assets/svg/ChevronRight";
+import ChevronLeft from "./assets/svg/ChevronLeft";
 
 // 태양 관련 상수
 const SUN_SIZE = 800; // 태양 이미지 크기(px)
@@ -18,7 +14,7 @@ const SUN_LEFT_OFFSET = (-SUN_SIZE * 3) / 4; // 화면 왼쪽 밖으로 3/4 나�
 const SUN_BOTTOM_OFFSET = 40; // 아래에서 40px 위
 
 // 행성 관련 상수
-const PLANET_ORBIT_RADIUS_OPTION = [350, 500, 750, 1000, 1250]
+const PLANET_ORBIT_RADIUS_OPTION = [350, 500, 750, 1000, 1250];
 const PLANET_ORBIT_RADIUS = {
   냥냥성: 500,
   청소별: 750,
@@ -29,7 +25,7 @@ const MAXIMUM_PLANET_SIZE = 150;
 const MINIMUM_PLANET_SIZE = 80;
 
 function getWeightedRandomRadius() {
-  const weights = PLANET_ORBIT_RADIUS_OPTION.map((_, i) => i + 1); 
+  const weights = PLANET_ORBIT_RADIUS_OPTION.map((_, i) => i + 1);
   const total = weights.reduce((a, b) => a + b, 0);
   const random = Math.random() * total;
 
@@ -51,12 +47,11 @@ const getOrbitRadius = (category) => {
 };
 
 function calDistance(r1, theta1, r2, theta2) {
-  return Math.sqrt(
-    r1 * r1 + r2 * r2 - 2 * r1 * r2 * Math.cos(theta1 - theta2)
-  );
+  return Math.sqrt(r1 * r1 + r2 * r2 - 2 * r1 * r2 * Math.cos(theta1 - theta2));
 }
 
-function App({ onLogout }) {
+function App() {
+  const navigate = useNavigate();
   const [todos, setTodos] = useState([]);
   const [completedTasks, setCompletedTasks] = useState([]);
   const [categories, setCategories] = useState(["냥냥성", "청소별", "공부별"]);
@@ -65,6 +60,15 @@ function App({ onLogout }) {
   const containerRef = useRef(null);
   const prevCategoriesRef = useRef("");
   const [sunCenter, setSunCenter] = useState({ x: 0, y: 0 });
+  const [isTodoListOpen, setIsTodoListOpen] = useState(false);
+
+  const handleLogout = () => {
+    navigate("/login");
+  };
+
+  const toggleTodoList = () => {
+    setIsTodoListOpen((prev) => !prev);
+  };
 
   // 카테고리별로 완료된 할 일들을 그룹화
   const tasksByCategory = completedTasks.reduce((acc, task) => {
@@ -166,8 +170,7 @@ function App({ onLogout }) {
 
         while (!valid && attempt < maxAttempts) {
           // 랜덤 각도 (-PLANET_EXIST_ANGLE ~ +PLANET_EXIST_ANGLE)
-          angle =
-            Math.random() * (2 * PLANET_EXIST_ANGLE) - PLANET_EXIST_ANGLE;
+          angle = Math.random() * (2 * PLANET_EXIST_ANGLE) - PLANET_EXIST_ANGLE;
 
           const newSize = getPlanetSize(category);
           const newR = radius;
@@ -188,8 +191,7 @@ function App({ onLogout }) {
             );
 
             const dist = calDistance(newR, angle, otherR, otherAngle);
-            const minDist =
-              (getPlanetSize(otherCat) + newSize) / 2 + 20; // 여유 간격
+            const minDist = (getPlanetSize(otherCat) + newSize) / 2 + 20; // 여유 간격
 
             if (dist < minDist) {
               valid = false;
@@ -258,13 +260,6 @@ function App({ onLogout }) {
 
     // 완료된 할 일들을 todos에서 제거
     setTodos((prev) => prev.filter((todo) => !todo.completed));
-
-    // // LLM 호출 예시
-    // try {
-    //   await sendMessageToGemini("안녕");
-    // } catch (error) {
-    //   console.error("LLM 호출 실패:", error);
-    // }
   };
 
   const handlePlanetHover = (category) => {
@@ -275,30 +270,11 @@ function App({ onLogout }) {
     setSelectedPlanetCategory(null);
   };
 
-  // 오늘의 날짜와 요일 가져오기
-  const getTodayDate = () => {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = today.getMonth() + 1;
-    const date = today.getDate();
-    const dayNames = [
-      "일요일",
-      "월요일",
-      "화요일",
-      "수요일",
-      "목요일",
-      "금요일",
-      "토요일",
-    ];
-    const dayName = dayNames[today.getDay()];
-    return `${year}. ${month}. ${date}. ${dayName}`;
-  };
-
   return (
-    <div className="flex h-screen overflow-hidden relative">
+    <div className="w-full h-screen overflow-hidden relative">
       {/* Logout 버튼 */}
       <button
-        onClick={onLogout}
+        onClick={handleLogout}
         className="
         absolute top-5 right-5 z-50
         text-cyan-300 font-semibold tracking-wide
@@ -309,34 +285,67 @@ function App({ onLogout }) {
         Logout
       </button>
 
-      {/* 왼쪽 패널 */}
-      <div className="w-[300px] relative bg-[#0a0a1a]">
-        {/* 타이틀 영역 - 떠있는 카드 */}
-        <div className="absolute top-5 left-5 right-5 bg-[#1a1a2e] p-5 rounded-lg shadow-2xl z-10">
-          <h1 className="text-white text-xl font-bold mb-2">
-            Plan It: we made it !
-          </h1>
-          <p className="text-white text-sm text-gray-300">{getTodayDate()}</p>
-        </div>
-        {/* TodoList - 떠있는 카드 */}
-        <div className="absolute top-32 left-5 right-5 bottom-5">
-          <TodoList
-            todos={todos}
-            categories={allCategories}
-            onAddTodo={handleAddTodo}
-            onToggleTodo={handleToggleTodo}
-            onLaunch={handleLaunch}
-            onAddCategory={handleAddCategory}
-          />
-        </div>
-      </div>
-
-      {/* 오른쪽 우주 공간 */}
+      {/* 우주 공간 - 전체 너비 */}
       <div
         ref={containerRef}
-        className="flex-1 space-background relative overflow-auto p-10"
+        className="w-full h-full space-background relative overflow-auto p-10"
         style={{ minHeight: "100vh" }}
       >
+        {/* TodoList 토글 컨트롤 */}
+        <div className="absolute top-5 left-5 z-50">
+          <img
+            src="/favicon.png"
+            alt="todo list button"
+            className="w-12 h-12"
+            draggable={false}
+          />
+        </div>
+
+        {/* TodoList 컨테이너 - 접는 버튼 포함 */}
+        <div
+          className={`absolute top-1/2 left-5 -translate-y-1/2 z-40 transition-all duration-300 flex items-center ${
+            isTodoListOpen
+              ? "translate-x-0 opacity-100"
+              : "-translate-x-full opacity-0 pointer-events-none"
+          }`}
+        >
+          {/* TodoList 카드 */}
+          <div className="w-[300px]">
+            <TodoList
+              todos={todos}
+              categories={allCategories}
+              onAddTodo={handleAddTodo}
+              onToggleTodo={handleToggleTodo}
+              onLaunch={handleLaunch}
+              onAddCategory={handleAddCategory}
+            />
+          </div>
+
+          {/* 접는 버튼 (왼쪽 화살표) - TodoList 오른쪽 */}
+          <button
+            onClick={toggleTodoList}
+            className="w-10 h-20 bg-[#1a1a2e] border-2 border-l-0 border-cyan-300 rounded-r-lg shadow-[0_0_8px_rgba(34,211,238,0.5)] flex items-center justify-center text-cyan-300 hover:bg-[#1e2a4a] transition-all hover:scale-105"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* 닫혀있을 때 펼치는 버튼 (오른쪽 화살표) - TodoList와 같은 애니메이션 */}
+        <div
+          className={`absolute top-1/2 left-5 -translate-y-1/2 z-40 transition-all duration-300 ${
+            !isTodoListOpen
+              ? "translate-x-0 opacity-100"
+              : "-translate-x-full opacity-0 pointer-events-none"
+          }`}
+        >
+          <button
+            onClick={toggleTodoList}
+            className="w-10 h-20 bg-[#1a1a2e] border-2 border-r-0 border-cyan-300 rounded-l-lg shadow-[0_0_8px_rgba(34,211,238,0.5)] flex items-center justify-center text-cyan-300 hover:bg-[#1e2a4a] transition-all hover:scale-105"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
+
         {/* 태양 이미지 — 왼쪽 중앙, 화면 밖으로 나가게 */}
         <img
           src="/src/assets/sun.png"
