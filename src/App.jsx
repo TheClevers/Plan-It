@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import TodoList from "./components/TodoList";
 import Planet from "./components/Planet";
-import PlanetInfo from "./components/PlanetInfo";
+import PlanetModal from "./components/PlanetModal";
+import RocketAnimation from "./components/RocketAnimation";
 import LLMChat from "./components/LLMChat";
 import ImageGenerator from "./components/ImageGenerator";
 import ChevronRight from "./assets/svg/ChevronRight";
@@ -56,11 +57,17 @@ function App() {
   const [completedTasks, setCompletedTasks] = useState([]);
   const [categories, setCategories] = useState(["냥냥성", "청소별", "공부별"]);
   const [selectedPlanetCategory, setSelectedPlanetCategory] = useState(null);
+  const [clickedPlanetCategories, setClickedPlanetCategories] = useState(
+    new Set()
+  );
   const [planetPositions, setPlanetPositions] = useState({});
   const containerRef = useRef(null);
   const prevCategoriesRef = useRef("");
   const [sunCenter, setSunCenter] = useState({ x: 0, y: 0 });
-  const [isTodoListOpen, setIsTodoListOpen] = useState(false);
+  const [isTodoListOpen, setIsTodoListOpen] = useState(true);
+  const [rocketAnimations, setRocketAnimations] = useState([]);
+  const [expandingPlanets, setExpandingPlanets] = useState(new Set());
+  const [isLaunching, setIsLaunching] = useState(false);
 
   const handleLogout = () => {
     navigate("/login");
@@ -243,31 +250,189 @@ function App() {
     );
   };
 
+  const handleDeleteTodo = (id) => {
+    setTodos((prev) => prev.filter((todo) => todo.id !== id));
+  };
+
+  const handleUpdateTodo = (id, newText) => {
+    setTodos((prev) =>
+      prev.map((todo) => (todo.id === id ? { ...todo, text: newText } : todo))
+    );
+  };
+
+  const handleMoveTodo = (todoId, targetCategory, targetIndex) => {
+    setTodos((prev) => {
+      const todo = prev.find((t) => t.id === todoId);
+      if (!todo) return prev;
+
+      // 기존 할 일 제거
+      const filtered = prev.filter((t) => t.id !== todoId);
+
+      // 카테고리별로 그룹화하여 순서 유지
+      const todosByCategory = filtered.reduce((acc, t) => {
+        if (!acc[t.category]) {
+          acc[t.category] = [];
+        }
+        acc[t.category].push(t);
+        return acc;
+      }, {});
+
+      const newTodo = { ...todo, category: targetCategory };
+
+      // targetIndex가 -1이면 맨 위에, 그 외에는 해당 인덱스에 삽입
+      const insertIndex = targetIndex === -1 ? 0 : targetIndex;
+
+      // 타겟 카테고리의 할 일 목록 가져오기
+      const targetCategoryTodos = todosByCategory[targetCategory] || [];
+
+      // 인덱스가 범위를 벗어나면 끝에 추가
+      const finalIndex =
+        insertIndex >= targetCategoryTodos.length
+          ? targetCategoryTodos.length
+          : insertIndex;
+
+      // 새 목록 생성
+      const newTargetCategoryTodos = [...targetCategoryTodos];
+      newTargetCategoryTodos.splice(finalIndex, 0, newTodo);
+
+      // 모든 카테고리의 할 일들을 순서대로 합치기
+      const allCategories = Array.from(
+        new Set([...Object.keys(todosByCategory), targetCategory])
+      );
+
+      const result = [];
+      allCategories.forEach((cat) => {
+        if (cat === targetCategory) {
+          result.push(...newTargetCategoryTodos);
+        } else {
+          result.push(...(todosByCategory[cat] || []));
+        }
+      });
+
+      return result;
+    });
+  };
+
   const handleLaunch = async () => {
     const checkedTodos = todos.filter((todo) => todo.completed);
 
-    if (checkedTodos.length === 0) return;
+    if (checkedTodos.length === 0 || isLaunching) return;
 
-    // 완료된 할 일들을 completedTasks에 추가
-    const newCompletedTasks = checkedTodos.map((todo) => ({
-      id: todo.id,
-      text: todo.text,
-      category: todo.category,
-      completedAt: new Date(),
-    }));
+    // 발사 시작 - 버튼 비활성화
+    setIsLaunching(true);
 
-    setCompletedTasks((prev) => [...prev, ...newCompletedTasks]);
+    // 완료된 할 일들의 위치 가져오기
+    const todoElements = document.querySelectorAll("[data-todo-id]");
+    const rockets = [];
 
-    // 완료된 할 일들을 todos에서 제거
-    setTodos((prev) => prev.filter((todo) => !todo.completed));
+    checkedTodos.forEach((todo) => {
+      const todoElement = Array.from(todoElements).find(
+        (el) => el.getAttribute("data-todo-id") === todo.id
+      );
+
+      if (todoElement && planetPositions[todo.category]) {
+        const todoRect = todoElement.getBoundingClientRect();
+        const startX = todoRect.left + todoRect.width / 2;
+        const startY = todoRect.top + todoRect.height / 2;
+
+        const planetPos = planetPositions[todo.category];
+        const endX = planetPos.x;
+        const endY = planetPos.y;
+
+        rockets.push({
+          id: `rocket-${todo.id}-${Date.now()}`,
+          startPosition: { x: startX, y: startY },
+          endPosition: { x: endX, y: endY },
+          category: todo.category,
+          todoId: todo.id,
+        });
+      }
+    });
+
+    // 로켓 애니메이션 시작
+    setRocketAnimations(rockets);
+
+    // 각 로켓 애니메이션 완료 후 처리
+    rockets.forEach((rocket) => {
+      setTimeout(() => {
+        // 행성 크기 증가 애니메이션
+        setExpandingPlanets((prev) => new Set(prev).add(rocket.category));
+
+        setTimeout(() => {
+          setExpandingPlanets((prev) => {
+            const newSet = new Set(prev);
+            newSet.delete(rocket.category);
+            return newSet;
+          });
+        }, 500);
+
+        // 로켓 제거
+        setRocketAnimations((prev) => prev.filter((r) => r.id !== rocket.id));
+      }, 1500); // 로켓 애니메이션 시간 (1.5초)
+    });
+
+    // 모든 로켓 애니메이션 완료 후 데이터 업데이트
+    setTimeout(() => {
+      const newCompletedTasks = checkedTodos.map((todo) => ({
+        id: todo.id,
+        text: todo.text,
+        category: todo.category,
+        completedAt: new Date(),
+      }));
+
+      setCompletedTasks((prev) => [...prev, ...newCompletedTasks]);
+      setTodos((prev) => prev.filter((todo) => !todo.completed));
+
+      // 발사 완료 - 버튼 활성화
+      setIsLaunching(false);
+    }, 2000);
   };
 
-  const handlePlanetHover = (category) => {
-    setSelectedPlanetCategory(category);
+  const handlePlanetClick = (category) => {
+    setClickedPlanetCategories((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(category)) {
+        newSet.delete(category);
+      } else {
+        newSet.add(category);
+      }
+      return newSet;
+    });
   };
 
-  const handlePlanetLeave = () => {
-    setSelectedPlanetCategory(null);
+  const handleCloseModal = (category) => {
+    setClickedPlanetCategories((prev) => {
+      const newSet = new Set(prev);
+      newSet.delete(category);
+      return newSet;
+    });
+  };
+
+  const handleDeletePlanet = (category) => {
+    // 카테고리 제거
+    setCategories((prev) => prev.filter((cat) => cat !== category));
+
+    // 해당 카테고리의 할 일들 제거
+    setTodos((prev) => prev.filter((todo) => todo.category !== category));
+
+    // 해당 카테고리의 완료된 할 일들 제거
+    setCompletedTasks((prev) =>
+      prev.filter((task) => task.category !== category)
+    );
+
+    // 행성 위치 제거
+    setPlanetPositions((prev) => {
+      const newPositions = { ...prev };
+      delete newPositions[category];
+      return newPositions;
+    });
+
+    // 모달 닫기
+    setClickedPlanetCategories((prev) => {
+      const newSet = new Set(prev);
+      newSet.delete(category);
+      return newSet;
+    });
   };
 
   return (
@@ -318,6 +483,11 @@ function App() {
               onToggleTodo={handleToggleTodo}
               onLaunch={handleLaunch}
               onAddCategory={handleAddCategory}
+              onMoveTodo={handleMoveTodo}
+              onDeleteTodo={handleDeleteTodo}
+              onUpdateTodo={handleUpdateTodo}
+              isLaunching={isLaunching}
+              onPlanetClick={handlePlanetClick}
             />
           </div>
 
@@ -401,30 +571,15 @@ function App() {
                   transform: "translate(-50%, -50%)",
                 }}
               >
-                <div
-                  onMouseEnter={() => handlePlanetHover(category)}
-                  onMouseLeave={handlePlanetLeave}
-                >
-                  <Planet
-                    category={category}
-                    size={getPlanetSize(category)}
-                    onClick={() => {}}
-                  />
-                </div>
-
-                {selectedPlanetCategory === category && (
-                  <div
-                    onMouseEnter={() => handlePlanetHover(category)}
-                    onMouseLeave={handlePlanetLeave}
-                  >
-                    <PlanetInfo
-                      category={category}
-                      completedTasks={tasksByCategory[category] || []}
-                      planetPosition={position}
-                      planetSize={getPlanetSize(category)}
-                    />
-                  </div>
-                )}
+                <Planet
+                  category={category}
+                  size={
+                    expandingPlanets.has(category)
+                      ? getPlanetSize(category) * 1.2
+                      : getPlanetSize(category)
+                  }
+                  onClick={() => handlePlanetClick(category)}
+                />
               </div>
             );
           })}
@@ -436,6 +591,36 @@ function App() {
 
       {/* 이미지 생성 (우측 하단 floating, LLM 채팅 옆) */}
       <ImageGenerator />
+
+      {/* 행성 정보 모달들 */}
+      {Array.from(clickedPlanetCategories).map((category) => {
+        if (!planetPositions[category]) return null;
+        return (
+          <PlanetModal
+            key={category}
+            category={category}
+            completedTasks={tasksByCategory[category] || []}
+            planetPosition={planetPositions[category]}
+            planetSize={getPlanetSize(category)}
+            onClose={() => handleCloseModal(category)}
+            onDelete={() => handleDeletePlanet(category)}
+          />
+        );
+      })}
+
+      {/* 로켓 애니메이션들 */}
+      {rocketAnimations.map((rocket) => (
+        <RocketAnimation
+          key={rocket.id}
+          id={rocket.id}
+          startPosition={rocket.startPosition}
+          endPosition={rocket.endPosition}
+          category={rocket.category}
+          onComplete={() => {
+            // 로켓 제거는 이미 handleLaunch에서 처리됨
+          }}
+        />
+      ))}
     </div>
   );
 }
