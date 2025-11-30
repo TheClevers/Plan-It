@@ -150,11 +150,25 @@ export default function TodoList({
   const checkedCount = todos.filter((todo) => todo.completed).length;
 
   return (
-    <div className="max-h-[calc(100vh-40px)] bg-[#1a1a2e] p-5 flex flex-col overflow-y-auto rounded-lg shadow-2xl">
+    <div
+      className="max-h-[calc(100vh-40px)] bg-gradient-to-br from-[#0a0a1a] via-[#1a1a2e] to-[#16213e] p-5 flex flex-col overflow-y-auto rounded-2xl shadow-2xl backdrop-blur-sm border border-cyan-500/20"
+      style={{
+        boxShadow:
+          "0 0 40px rgba(80, 200, 255, 0.1), inset 0 0 60px rgba(80, 200, 255, 0.05)",
+      }}
+    >
       {/* 헤더 */}
-      <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-700">
-        <h2 className="text-white text-sm font-medium">{getDateString()}</h2>
-        <Calendar className="w-5 h-5 text-cyan-300" />
+      <div className="flex items-center justify-between mb-4 pb-3 border-b border-cyan-500/30">
+        <h2
+          className="text-cyan-300 text-sm font-semibold tracking-wide"
+          style={{ textShadow: "0 0 10px rgba(80, 200, 255, 0.5)" }}
+        >
+          {getDateString()}
+        </h2>
+        <Calendar
+          className="w-5 h-5 text-cyan-400"
+          style={{ filter: "drop-shadow(0 0 4px rgba(80, 200, 255, 0.6))" }}
+        />
       </div>
 
       <div className="flex-1 overflow-y-auto mb-5 space-y-4">
@@ -163,11 +177,18 @@ export default function TodoList({
             {/* 카테고리 헤더 */}
             <div className="flex items-center gap-2 mb-2">
               <div
-                className={`flex-1 bg-[#16213e] rounded px-3 py-2 transition-all ${
+                className={`flex-1 bg-gradient-to-r from-[#16213e] to-[#1a1a2e] rounded-xl px-3 py-2 transition-all ${
                   dragOverCategory === category && dragOverIndex === -1
-                    ? "ring-2 ring-cyan-400"
+                    ? "ring-2 ring-cyan-400 shadow-lg"
                     : ""
                 }`}
+                style={{
+                  boxShadow:
+                    dragOverCategory === category && dragOverIndex === -1
+                      ? "0 0 20px rgba(80, 200, 255, 0.4)"
+                      : "0 2px 8px rgba(0, 0, 0, 0.3)",
+                  border: "1px solid rgba(80, 200, 255, 0.1)",
+                }}
                 onDragOver={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -175,11 +196,29 @@ export default function TodoList({
                 }}
                 onDrop={(e) => handleDrop(e, category, -1)}
               >
-                <span className="text-white">{category}</span>
+                <span
+                  className="text-cyan-200 font-medium"
+                  style={{ textShadow: "0 0 8px rgba(80, 200, 255, 0.4)" }}
+                >
+                  {category}
+                </span>
               </div>
               <button
                 onClick={() => handleToggleInput(category)}
-                className="w-8 h-8 bg-[#16213e] rounded-full flex items-center justify-center text-white text-lg hover:bg-[#1e2a4a] transition-colors"
+                className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-full flex items-center justify-center text-white text-lg hover:from-cyan-400 hover:to-blue-400 transition-all"
+                style={{
+                  boxShadow: "0 0 15px rgba(80, 200, 255, 0.5)",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.boxShadow =
+                    "0 0 20px rgba(80, 200, 255, 0.8)";
+                  e.currentTarget.style.transform = "scale(1.1)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.boxShadow =
+                    "0 0 15px rgba(80, 200, 255, 0.5)";
+                  e.currentTarget.style.transform = "scale(1)";
+                }}
               >
                 +
               </button>
@@ -212,11 +251,17 @@ export default function TodoList({
                 <div key={todo.id}>
                   {/* 위쪽 드롭 영역 */}
                   {dragOverCategory === category && dragOverIndex === index && (
-                    <div className="h-1 mb-2 bg-cyan-400 rounded"></div>
+                    <div
+                      className="h-1 mb-2 bg-gradient-to-r from-cyan-400 to-blue-400 rounded"
+                      style={{ boxShadow: "0 0 10px rgba(80, 200, 255, 0.6)" }}
+                    ></div>
                   )}
                   {editingTodoId === todo.id ? (
                     // 수정 모드
-                    <div className="flex items-center gap-2.5 p-2.5 bg-[#16213e] rounded">
+                    <div
+                      className="flex items-center gap-2.5 p-2.5 bg-[#16213e] rounded-xl border border-cyan-500/30"
+                      style={{ boxShadow: "0 2px 8px rgba(0, 0, 0, 0.3)" }}
+                    >
                       <input
                         type="text"
                         value={editingText}
@@ -229,21 +274,28 @@ export default function TodoList({
                           }
                         }}
                         onBlur={() => handleSaveEdit(todo.id)}
-                        className="flex-1 min-w-0 p-2 bg-[#0f1624] border border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none focus:border-gray-500"
+                        className="flex-1 min-w-0 p-2 bg-[#0f1624] border border-cyan-500/30 rounded-lg text-cyan-100 placeholder-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400"
+                        style={{
+                          boxShadow: "inset 0 2px 4px rgba(0, 0, 0, 0.2)",
+                        }}
                         autoFocus
                       />
                       <button
                         onClick={() => handleSaveEdit(todo.id)}
-                        className="w-8 h-8 bg-[#1e2a4a] rounded flex items-center justify-center text-white text-sm hover:bg-[#2a3a5a] transition-colors shrink-0"
-                        style={{ minWidth: "32px", minHeight: "32px" }}
+                        className="w-7 h-7 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center text-white text-sm hover:from-emerald-400 hover:to-teal-400 transition-all shrink-0"
+                        style={{
+                          boxShadow: "0 0 10px rgba(16, 185, 129, 0.4)",
+                        }}
                         title="저장"
                       >
                         ✓
                       </button>
                       <button
                         onClick={handleCancelEdit}
-                        className="w-8 h-8 bg-[#1e2a4a] rounded flex items-center justify-center text-white text-sm hover:bg-[#2a3a5a] transition-colors shrink-0"
-                        style={{ minWidth: "32px", minHeight: "32px" }}
+                        className="w-7 h-7 bg-gradient-to-br from-red-500 to-rose-500 rounded-lg flex items-center justify-center text-white text-lg hover:from-red-400 hover:to-rose-400 transition-all shrink-0 font-bold"
+                        style={{
+                          boxShadow: "0 0 10px rgba(239, 68, 68, 0.4)",
+                        }}
                         title="취소"
                       >
                         ✕
@@ -263,13 +315,20 @@ export default function TodoList({
                       onDragEnd={handleDragEnd}
                       onMouseEnter={() => setHoveredTodoId(todo.id)}
                       onMouseLeave={() => setHoveredTodoId(null)}
-                      className={`group flex items-center gap-2.5 p-2.5 bg-[#16213e] rounded cursor-move transition-all ${
+                      className={`group flex items-center gap-2.5 p-2.5 bg-[#16213e] rounded-xl cursor-move transition-all border ${
                         draggedTodo?.id === todo.id ? "opacity-50" : ""
                       } ${
                         dragOverCategory === category && dragOverIndex === index
-                          ? "ring-2 ring-cyan-400"
-                          : ""
+                          ? "ring-2 ring-cyan-400 border-cyan-400"
+                          : "border-cyan-500/20"
                       }`}
+                      style={{
+                        boxShadow:
+                          dragOverCategory === category &&
+                          dragOverIndex === index
+                            ? "0 0 20px rgba(80, 200, 255, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3)"
+                            : "0 2px 8px rgba(0, 0, 0, 0.3)",
+                      }}
                     >
                       <input
                         type="checkbox"
@@ -280,9 +339,16 @@ export default function TodoList({
                         onMouseDown={(e) => e.stopPropagation()}
                       />
                       <span
-                        className={`text-white flex-1 ${
-                          todo.completed ? "line-through opacity-60" : ""
+                        className={`text-cyan-100 flex-1 ${
+                          todo.completed
+                            ? "line-through opacity-40 text-cyan-500"
+                            : ""
                         }`}
+                        style={{
+                          textShadow: todo.completed
+                            ? "none"
+                            : "0 0 4px rgba(80, 200, 255, 0.3)",
+                        }}
                       >
                         {todo.text}
                       </span>
@@ -294,20 +360,43 @@ export default function TodoList({
                               e.stopPropagation();
                               handleEditTodo(todo);
                             }}
-                            className="w-7 h-7 bg-[#1e2a4a] rounded flex items-center justify-center text-white text-xs hover:bg-[#2a3a5a] transition-colors"
+                            className="w-7 h-7 bg-transparent rounded-lg flex items-center justify-center text-cyan-300 text-sm hover:text-cyan-200 transition-all font-bold"
+                            style={{
+                              textShadow: "0 0 8px rgba(80, 200, 255, 0.6)",
+                              transform: "rotate(-45deg)",
+                            }}
                             title="수정"
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.textShadow =
+                                "0 0 12px rgba(80, 200, 255, 0.9)";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.textShadow =
+                                "0 0 8px rgba(80, 200, 255, 0.6)";
+                            }}
                           >
-                            ✏️
+                            ✏
                           </button>
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               handleDeleteTodo(todo.id);
                             }}
-                            className="w-7 h-7 bg-[#1e2a4a] rounded flex items-center justify-center text-white text-xs hover:bg-red-600 transition-colors"
+                            className="w-7 h-7 bg-transparent rounded-lg flex items-center justify-center text-red-400 text-lg hover:text-red-300 transition-all font-bold"
+                            style={{
+                              textShadow: "0 0 8px rgba(239, 68, 68, 0.6)",
+                            }}
                             title="삭제"
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.textShadow =
+                                "0 0 12px rgba(239, 68, 68, 0.9)";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.textShadow =
+                                "0 0 8px rgba(239, 68, 68, 0.6)";
+                            }}
                           >
-                            🗑️
+                            ✕
                           </button>
                         </div>
                       )}
@@ -320,7 +409,10 @@ export default function TodoList({
               {dragOverCategory === category &&
                 dragOverIndex === (todosByCategory[category]?.length || 0) &&
                 draggedTodo && (
-                  <div className="h-1 mt-2 bg-cyan-400 rounded"></div>
+                  <div
+                    className="h-1 mt-2 bg-gradient-to-r from-cyan-400 to-blue-400 rounded"
+                    style={{ boxShadow: "0 0 10px rgba(80, 200, 255, 0.6)" }}
+                  ></div>
                 )}
 
               {/* 새 할 일 입력 - + 버튼을 눌렀을 때만 표시 */}
@@ -359,7 +451,8 @@ export default function TodoList({
                       });
                     }
                   }}
-                  className="w-full p-2 bg-[#16213e] border border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none focus:border-gray-500"
+                  className="w-full p-2 bg-[#0f1624] border border-cyan-500/30 rounded-xl text-cyan-100 placeholder-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400"
+                  style={{ boxShadow: "inset 0 2px 4px rgba(0, 0, 0, 0.2)" }}
                   autoFocus
                 />
               )}
@@ -384,12 +477,26 @@ export default function TodoList({
                     setNewCategoryName("");
                   }
                 }}
-                className="flex-1 bg-[#16213e] rounded px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:border focus:border-gray-500"
+                className="flex-1 bg-[#0f1624] border border-cyan-500/30 rounded-xl px-3 py-2 text-cyan-100 placeholder-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400"
+                style={{ boxShadow: "inset 0 2px 4px rgba(0, 0, 0, 0.2)" }}
                 autoFocus
               />
               <button
                 onClick={handleAddCategory}
-                className="w-8 h-8 bg-[#16213e] rounded-full flex items-center justify-center text-white text-lg hover:bg-[#1e2a4a] transition-colors"
+                className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-full flex items-center justify-center text-white text-lg hover:from-cyan-400 hover:to-blue-400 transition-all"
+                style={{
+                  boxShadow: "0 0 15px rgba(80, 200, 255, 0.5)",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.boxShadow =
+                    "0 0 20px rgba(80, 200, 255, 0.8)";
+                  e.currentTarget.style.transform = "scale(1.1)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.boxShadow =
+                    "0 0 15px rgba(80, 200, 255, 0.5)";
+                  e.currentTarget.style.transform = "scale(1)";
+                }}
               >
                 +
               </button>
@@ -398,14 +505,18 @@ export default function TodoList({
         ) : (
           <button
             onClick={() => setIsAddingCategory(true)}
-            className="w-full p-3 bg-[#16213e] rounded text-white hover:bg-[#1e2a4a] transition-colors text-left"
+            className="w-full p-3 bg-[#16213e] rounded-xl text-cyan-300 hover:bg-[#1a1a2e] transition-all text-left font-medium border border-cyan-500/20 hover:border-cyan-500/40"
+            style={{
+              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.3)",
+              textShadow: "0 0 8px rgba(80, 200, 255, 0.4)",
+            }}
           >
             + 새 카테고리 추가
           </button>
         )}
       </div>
 
-      <div className="pt-5 border-t border-gray-700">
+      <div className="pt-5 border-t border-cyan-500/30">
         <button
           onClick={onLaunch}
           disabled={checkedCount === 0}

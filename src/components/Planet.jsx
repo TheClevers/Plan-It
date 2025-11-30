@@ -45,76 +45,30 @@ export default function Planet({ category, size, onClick }) {
       onClick={onClick}
     >
       <div
-        className="rounded-full planet-glow flex items-center justify-center relative overflow-hidden"
+        className="rounded-full flex items-center justify-center relative overflow-hidden"
         style={{
           width: `${size}px`,
           height: `${size}px`,
-          boxShadow: planetImage
-            ? `
-            0 0 ${size * 0.25}px ${hexToRgba(colors.from, 0.5)},
-            0 0 ${size * 0.5}px ${hexToRgba(colors.from, 0.4)},
-            0 0 ${size * 0.75}px ${hexToRgba(colors.from, 0.25)}
-          `
-            : `
-            0 0 ${size * 0.25}px ${hexToRgba(colors.from, 0.5)},
-            0 0 ${size * 0.5}px ${hexToRgba(colors.from, 0.4)},
-            0 0 ${size * 0.75}px ${hexToRgba(colors.from, 0.25)},
-            inset -${size * 0.125}px -${size * 0.125}px ${
-                size * 0.375
-              }px rgba(0, 0, 0, 0.6),
-            inset ${size * 0.125}px ${size * 0.125}px ${
-                size * 0.375
-              }px rgba(255, 255, 255, 0.15)
-          `,
         }}
       >
         {planetImage ? (
-          <>
-            <img
-              src={planetImage}
-              alt={category}
-              className="w-full h-full object-cover rounded-full"
-              style={{
-                width: `${size}px`,
-                height: `${size}px`,
-              }}
-            />
-            {/* 이미지 위에 약간의 오버레이 효과 */}
-            <div
-              className="absolute inset-0 rounded-full"
-              style={{
-                background: `radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.1) 0%, transparent 50%)`,
-              }}
-            />
-          </>
+          <img
+            src={planetImage}
+            alt={category}
+            className="rounded-full"
+            style={{
+              width: `${size}px`,
+              height: `${size}px`,
+              objectFit: "contain",
+            }}
+          />
         ) : (
-          <>
-            <div
-              className="rounded-full planet-surface absolute inset-0"
-              style={{
-                background: `radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.3) 0%, transparent 50%),
-            radial-gradient(circle at 70% 70%, rgba(0, 0, 0, 0.4) 0%, transparent 50%),
-            linear-gradient(135deg, ${colors.from} 0%, ${colors.to} 100%)`,
-              }}
-            />
-            {/* 행성 표면 패턴 */}
-            <div
-              className="absolute inset-0 rounded-full opacity-30"
-              style={{
-                background: `
-              radial-gradient(circle at 20% 30%, transparent 0%, rgba(0, 0, 0, 0.2) 40%, transparent 60%),
-              radial-gradient(circle at 80% 70%, transparent 0%, rgba(0, 0, 0, 0.2) 40%, transparent 60%),
-              radial-gradient(circle at 50% 50%, transparent 0%, rgba(255, 255, 255, 0.1) 30%, transparent 50%)
-            `,
-              }}
-            />
-            <div
-              className="text-white font-bold text-center p-2.5 break-words relative z-10 drop-shadow-lg"
-              style={{ fontSize: `${size * 0.1}px` }}
-            >
-              {category}
-            </div>
-          </>
+          <div
+            className="text-white font-bold text-center p-2.5 break-words relative z-10 drop-shadow-lg"
+            style={{ fontSize: `${size * 0.1}px` }}
+          >
+            {category}
+          </div>
         )}
       </div>
       <div className="mt-3 text-white text-sm text-center drop-shadow-md font-medium">
