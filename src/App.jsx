@@ -243,6 +243,69 @@ function App() {
     );
   };
 
+  const handleDeleteTodo = (id) => {
+    setTodos((prev) => prev.filter((todo) => todo.id !== id));
+  };
+
+  const handleUpdateTodo = (id, newText) => {
+    setTodos((prev) =>
+      prev.map((todo) => (todo.id === id ? { ...todo, text: newText } : todo))
+    );
+  };
+
+  const handleMoveTodo = (todoId, targetCategory, targetIndex) => {
+    setTodos((prev) => {
+      const todo = prev.find((t) => t.id === todoId);
+      if (!todo) return prev;
+
+      // 기존 할 일 제거
+      const filtered = prev.filter((t) => t.id !== todoId);
+
+      // 카테고리별로 그룹화하여 순서 유지
+      const todosByCategory = filtered.reduce((acc, t) => {
+        if (!acc[t.category]) {
+          acc[t.category] = [];
+        }
+        acc[t.category].push(t);
+        return acc;
+      }, {});
+
+      const newTodo = { ...todo, category: targetCategory };
+
+      // targetIndex가 -1이면 맨 위에, 그 외에는 해당 인덱스에 삽입
+      const insertIndex = targetIndex === -1 ? 0 : targetIndex;
+
+      // 타겟 카테고리의 할 일 목록 가져오기
+      const targetCategoryTodos = todosByCategory[targetCategory] || [];
+
+      // 인덱스가 범위를 벗어나면 끝에 추가
+      const finalIndex =
+        insertIndex >= targetCategoryTodos.length
+          ? targetCategoryTodos.length
+          : insertIndex;
+
+      // 새 목록 생성
+      const newTargetCategoryTodos = [...targetCategoryTodos];
+      newTargetCategoryTodos.splice(finalIndex, 0, newTodo);
+
+      // 모든 카테고리의 할 일들을 순서대로 합치기
+      const allCategories = Array.from(
+        new Set([...Object.keys(todosByCategory), targetCategory])
+      );
+
+      const result = [];
+      allCategories.forEach((cat) => {
+        if (cat === targetCategory) {
+          result.push(...newTargetCategoryTodos);
+        } else {
+          result.push(...(todosByCategory[cat] || []));
+        }
+      });
+
+      return result;
+    });
+  };
+
   const handleLaunch = async () => {
     const checkedTodos = todos.filter((todo) => todo.completed);
 
@@ -318,6 +381,9 @@ function App() {
               onToggleTodo={handleToggleTodo}
               onLaunch={handleLaunch}
               onAddCategory={handleAddCategory}
+              onMoveTodo={handleMoveTodo}
+              onDeleteTodo={handleDeleteTodo}
+              onUpdateTodo={handleUpdateTodo}
             />
           </div>
 
