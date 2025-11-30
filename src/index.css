@@ -109,6 +109,7 @@
     position: relative;
     transform-style: preserve-3d;
     animation: float 6s ease-in-out infinite;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
   @keyframes float {
@@ -118,6 +119,30 @@
     }
     50% {
       transform: translateY(-10px);
+    }
+  }
+
+  /* 행성 호버 효과 - 통통 튀는 효과 */
+  .planet-hover:hover {
+    transform: scale(1.15) translateY(-5px);
+    animation: planetBounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  /* 클릭 시 애니메이션 제거 */
+  .planet-hover:active {
+    transition: none;
+    animation: none;
+  }
+
+  @keyframes planetBounce {
+    0% {
+      transform: scale(1) translateY(0px);
+    }
+    50% {
+      transform: scale(1.2) translateY(-8px);
+    }
+    100% {
+      transform: scale(1.15) translateY(-5px);
     }
   }
 
