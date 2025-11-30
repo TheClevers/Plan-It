@@ -10,12 +10,26 @@ export default function TodoList({
   onToggleTodo,
   onLaunch,
   onAddCategory,
+  onMoveTodo,
+  onDeleteTodo,
+  onUpdateTodo,
+  isLaunching = false,
+  onPlanetClick,
 }) {
   const [newTodoTexts, setNewTodoTexts] = useState({});
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
-  const [selectedDate, setSelectedDate] = useState(new Date()); // ✅ 확정된 날짜
-  const [tempDate, setTempDate] = useState(new Date());         // ✅ 달력용 임시 날짜
+  const [showInputForCategory, setShowInputForCategory] = useState({});
+  const [draggedTodo, setDraggedTodo] = useState(null);
+  const [dragOverCategory, setDragOverCategory] = useState(null);
+  const [dragOverIndex, setDragOverIndex] = useState(null);
+  const [hoveredTodoId, setHoveredTodoId] = useState(null);
+  const [editingTodoId, setEditingTodoId] = useState(null);
+  const [editingText, setEditingText] = useState("");
+
+  // ✅ 캘린더용 상태
+  const [selectedDate, setSelectedDate] = useState(new Date()); // 확정된 날짜
+  const [tempDate, setTempDate] = useState(new Date());         // 캘린더에서 움직이는 임시 날짜
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   // 날짜 포맷팅 함수 (selectedDate 사용)
@@ -42,6 +56,94 @@ export default function TodoList({
     if (text.trim()) {
       onAddTodo(text, category);
       setNewTodoTexts({ ...newTodoTexts, [category]: "" });
+      setShowInputForCategory({ ...showInputForCategory, [category]: false });
+    }
+  };
+
+  const handleToggleInput = (category) => {
+    setShowInputForCategory({
+      ...showInputForCategory,
+      [category]: !showInputForCategory[category],
+    });
+    // 입력 필드가 열리면 포커스
+    setTimeout(() => {
+      const input = document.getElementById(`todo-input-${category}`);
+      if (input && showInputForCategory[category] === false) {
+        input.focus();
+      }
+    }, 0);
+  };
+
+  const handleDragStart = (e, todo) => {
+    setDraggedTodo(todo);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/html", todo.id);
+  };
+
+  const handleDragOver = (e, category, index) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = "move";
+    setDragOverCategory(category);
+    setDragOverIndex(index);
+  };
+
+  const handleDragLeave = (e) => {
+    // 자식 요소로 이동하는 경우는 무시
+    if (e.currentTarget.contains(e.relatedTarget)) {
+      return;
+    }
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX;
+    const y = e.clientY;
+    if (
+      x >= rect.left &&
+      x <= rect.right &&
+      y >= rect.top &&
+      y <= rect.bottom
+    ) {
+      return;
+    }
+  };
+
+  const handleDrop = (e, targetCategory, targetIndex) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!draggedTodo || !onMoveTodo) return;
+
+    onMoveTodo(draggedTodo.id, targetCategory, targetIndex);
+    setDraggedTodo(null);
+    setDragOverCategory(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedTodo(null);
+    setDragOverCategory(null);
+    setDragOverIndex(null);
+  };
+
+  const handleEditTodo = (todo) => {
+    setEditingTodoId(todo.id);
+    setEditingText(todo.text);
+  };
+
+  const handleSaveEdit = (todoId) => {
+    if (editingText.trim() && onUpdateTodo) {
+      onUpdateTodo(todoId, editingText.trim());
+    }
+    setEditingTodoId(null);
+    setEditingText("");
+  };
+
+  const handleCancelEdit = () => {
+    setEditingTodoId(null);
+    setEditingText("");
+  };
+
+  const handleDeleteTodo = (todoId) => {
+    if (onDeleteTodo) {
+      onDeleteTodo(todoId);
     }
   };
 
@@ -55,105 +157,355 @@ export default function TodoList({
 
   const checkedCount = todos.filter((todo) => todo.completed).length;
 
-  // ⚙ 한 칸의 폭
-  const CELL_WIDTH = 300;
+  // 캘린더 패널 넓이 (고정)
+  const CALENDAR_WIDTH = 320;
 
   return (
-    // 전체 카드: 닫힘 = 1칸, 열림 = 2칸
     <div
-      className="bg-[#1a1a2e] rounded-lg shadow-2xl flex max-h-[calc(100vh-40px)] transition-all duration-300"
+      className="max-h-[calc(100vh-40px)] bg-gradient-to-br from-[#0a0a1a] via-[#1a1a2e] to-[#16213e] p-5 flex flex-col overflow-hidden rounded-2xl shadow-2xl backdrop-blur-sm border border-cyan-500/20"
       style={{
-        width: isCalendarOpen ? CELL_WIDTH * 2 : CELL_WIDTH,
+        boxShadow:
+          "0 0 40px rgba(80, 200, 255, 0.1), inset 0 0 60px rgba(80, 200, 255, 0.05)",
       }}
     >
-      {/* 왼쪽: TODO 리스트 (항상 1칸 폭 유지) */}
-      <div
-        className="relative p-5 flex flex-col overflow-y-auto"
-        style={{ width: CELL_WIDTH }}
-      >
-        {/* 헤더 */}
-        <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-700">
-          <h2 className="text-white text-sm font-medium">
-            {getDateString()}
-          </h2>
-          <button
-            onClick={() => {
-              // 📌 캘린더를 열 때, 임시 날짜를 현재 확정 날짜로 맞춰줌
-              setTempDate(selectedDate);
-              setIsCalendarOpen((prev) => !prev);
-            }}
-            className="p-1 rounded hover:bg-[#16213e] transition-colors"
-          >
-            <CalendarIcon className="w-5 h-5 text-cyan-300" />
-          </button>
-        </div>
+      {/* 헤더 */}
+      <div className="flex items-center justify-between mb-4 pb-3 border-b border-cyan-500/30">
+        <h2
+          className="text-cyan-300 text-sm font-semibold tracking-wide"
+          style={{ textShadow: "0 0 10px rgba(80, 200, 255, 0.5)" }}
+        >
+          {getDateString()}
+        </h2>
+        <button
+          onClick={() => {
+            // 캘린더 열 때 tempDate를 selectedDate와 동기화
+            setTempDate(selectedDate);
+            setIsCalendarOpen((prev) => !prev);
+          }}
+          className="p-1 rounded hover:bg-[#16213e] transition-colors"
+        >
+          <CalendarIcon
+            className="w-5 h-5 text-cyan-400"
+            style={{ filter: "drop-shadow(0 0 4px rgba(80, 200, 255, 0.6))" }}
+          />
+        </button>
+      </div>
 
-        {/* 할 일 리스트 영역 */}
-        <div className="flex-1 overflow-y-auto mb-5 space-y-4">
+      {/* 메인 영역: 왼쪽 TODO, 오른쪽 캘린더(옵션) */}
+      <div className="flex-1 mb-5 flex gap-4 overflow-hidden">
+        {/* 왼쪽: TODO 리스트 스크롤 영역 */}
+        <div className="flex-1 overflow-y-auto space-y-4 pr-1">
           {categories.map((category) => (
             <div key={category} className="mb-4">
               {/* 카테고리 헤더 */}
               <div className="flex items-center gap-2 mb-2">
-                <div className="flex-1 bg-[#16213e] rounded px-3 py-2">
-                  <span className="text-white">{category}</span>
-                </div>
-                <button
-                  onClick={() => {
-                    const input = document.getElementById(
-                      `todo-input-${category}`
-                    );
-                    if (input) {
-                      input.focus();
+                <div
+                  className={`flex-1 bg-gradient-to-r from-[#16213e] to-[#1a1a2e] rounded-xl px-3 py-2 transition-all cursor-pointer hover:from-[#1a1a2e] hover:to-[#16213e] ${
+                    dragOverCategory === category && dragOverIndex === -1
+                      ? "ring-2 ring-cyan-400 shadow-lg"
+                      : ""
+                  }`}
+                  style={{
+                    boxShadow:
+                      dragOverCategory === category && dragOverIndex === -1
+                        ? "0 0 20px rgba(80, 200, 255, 0.4)"
+                        : "0 2px 8px rgba(0, 0, 0, 0.3)",
+                    border: "1px solid rgba(80, 200, 255, 0.1)",
+                  }}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleDragOver(e, category, -1);
+                  }}
+                  onDrop={(e) => handleDrop(e, category, -1)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onPlanetClick) {
+                      onPlanetClick(category);
                     }
                   }}
-                  className="w-8 h-8 bg-[#16213e] rounded-full flex items-center justify-center text-white text-lg hover:bg-[#1e2a4a] transition-colors"
+                >
+                  <span
+                    className="text-cyan-200 font-medium"
+                    style={{ textShadow: "0 0 8px rgba(80, 200, 255, 0.4)" }}
+                  >
+                    {category}
+                  </span>
+                </div>
+                <button
+                  onClick={() => handleToggleInput(category)}
+                  className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-full flex items-center justify-center text-white text-lg hover:from-cyan-400 hover:to-blue-400 transition-all"
+                  style={{
+                    boxShadow: "0 0 8px rgba(80, 200, 255, 0.4)",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.boxShadow =
+                      "0 0 12px rgba(80, 200, 255, 0.6)";
+                    e.currentTarget.style.transform = "scale(1.05)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.boxShadow =
+                      "0 0 8px rgba(80, 200, 255, 0.4)";
+                    e.currentTarget.style.transform = "scale(1)";
+                  }}
                 >
                   +
                 </button>
               </div>
 
               {/* 해당 카테고리의 할 일 목록 */}
-              <div className="space-y-2">
-                {todosByCategory[category]?.map((todo) => (
-                  <div
-                    key={todo.id}
-                    className="flex items-center gap-2.5 p-2.5 bg-[#16213e] rounded"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={todo.completed}
-                      onChange={() => onToggleTodo(todo.id)}
-                      className="cursor-pointer"
-                    />
-                    <span
-                      className={`text-white flex-1 ${
-                        todo.completed ? "line-through opacity-60" : ""
-                      }`}
-                    >
-                      {todo.text}
-                    </span>
+              <div
+                className="space-y-2"
+                onDragOver={(e) => {
+                  if (draggedTodo) {
+                    handleDragOver(
+                      e,
+                      category,
+                      todosByCategory[category]?.length || 0
+                    );
+                  }
+                }}
+                onDrop={(e) => {
+                  if (draggedTodo) {
+                    handleDrop(
+                      e,
+                      category,
+                      todosByCategory[category]?.length || 0
+                    );
+                  }
+                }}
+              >
+                {todosByCategory[category]?.map((todo, index) => (
+                  <div key={todo.id}>
+                    {/* 위쪽 드롭 영역 */}
+                    {dragOverCategory === category &&
+                      dragOverIndex === index && (
+                        <div
+                          className="h-1 mb-2 bg-gradient-to-r from-cyan-400 to-blue-400 rounded"
+                          style={{
+                            boxShadow:
+                              "0 0 10px rgba(80, 200, 255, 0.6)",
+                          }}
+                        ></div>
+                      )}
+
+                    {editingTodoId === todo.id ? (
+                      // 수정 모드
+                      <div
+                        className="flex items-center gap-2.5 p-2.5 bg-[#16213e] rounded-xl border border-cyan-500/30"
+                        style={{
+                          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.3)",
+                        }}
+                      >
+                        <input
+                          type="text"
+                          value={editingText}
+                          onChange={(e) =>
+                            setEditingText(e.target.value)
+                          }
+                          onKeyPress={(e) => {
+                            if (e.key === "Enter") {
+                              handleSaveEdit(todo.id);
+                            } else if (e.key === "Escape") {
+                              handleCancelEdit();
+                            }
+                          }}
+                          onBlur={() => handleSaveEdit(todo.id)}
+                          className="flex-1 min-w-0 p-2 bg-[#0f1624] border border-cyan-500/30 rounded-lg text-cyan-100 placeholder-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400"
+                          style={{
+                            boxShadow:
+                              "inset 0 2px 4px rgba(0, 0, 0, 0.2)",
+                          }}
+                          autoFocus
+                        />
+                        <button
+                          onClick={() => handleSaveEdit(todo.id)}
+                          className="w-7 h-7 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center text-white text-sm hover:from-emerald-400 hover:to-teal-400 transition-all shrink-0"
+                          style={{
+                            boxShadow:
+                              "0 0 10px rgba(16, 185, 129, 0.4)",
+                          }}
+                          title="저장"
+                        >
+                          ✓
+                        </button>
+                        <button
+                          onClick={handleCancelEdit}
+                          className="w-7 h-7 bg-gradient-to-br from-red-500 to-rose-500 rounded-lg flex items-center justify-center text-white text-lg hover:from-red-400 hover:to-rose-400 transition-all shrink-0 font-bold"
+                          style={{
+                            boxShadow:
+                              "0 0 10px rgba(239, 68, 68, 0.4)",
+                          }}
+                          title="취소"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ) : (
+                      // 일반 모드
+                      <div
+                        data-todo-id={todo.id}
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, todo)}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleDragOver(e, category, index);
+                        }}
+                        onDrop={(e) => handleDrop(e, category, index)}
+                        onDragEnd={handleDragEnd}
+                        onMouseEnter={() => setHoveredTodoId(todo.id)}
+                        onMouseLeave={() => setHoveredTodoId(null)}
+                        className={`group flex items-center gap-2.5 p-2.5 bg-[#16213e] rounded-xl cursor-move transition-all border ${
+                          draggedTodo?.id === todo.id ? "opacity-50" : ""
+                        } ${
+                          dragOverCategory === category &&
+                          dragOverIndex === index
+                            ? "ring-2 ring-cyan-400 border-cyan-400"
+                            : "border-cyan-500/20"
+                        }`}
+                        style={{
+                          boxShadow:
+                            dragOverCategory === category &&
+                            dragOverIndex === index
+                              ? "0 0 20px rgba(80, 200, 255, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3)"
+                              : "0 2px 8px rgba(0, 0, 0, 0.3)",
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={todo.completed}
+                          onChange={() => onToggleTodo(todo.id)}
+                          className="cursor-pointer"
+                          onClick={(e) => e.stopPropagation()}
+                          onMouseDown={(e) => e.stopPropagation()}
+                        />
+                        <span
+                          className={`text-cyan-100 flex-1 ${
+                            todo.completed
+                              ? "line-through opacity-40 text-cyan-500"
+                              : ""
+                          }`}
+                          style={{
+                            textShadow: todo.completed
+                              ? "none"
+                              : "0 0 4px rgba(80, 200, 255, 0.3)",
+                          }}
+                        >
+                          {todo.text}
+                        </span>
+                        {/* 수정/삭제 버튼 - 호버 시 표시 */}
+                        {hoveredTodoId === todo.id && !draggedTodo && (
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditTodo(todo);
+                              }}
+                              className="w-7 h-7 bg-transparent rounded-lg flex items-center justify-center text-cyan-300 text-sm hover:text-cyan-200 transition-all font-bold"
+                              style={{
+                                textShadow:
+                                  "0 0 8px rgba(80, 200, 255, 0.6)",
+                                transform: "rotate(-45deg)",
+                              }}
+                              title="수정"
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.textShadow =
+                                  "0 0 12px rgba(80, 200, 255, 0.9)";
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.textShadow =
+                                  "0 0 8px rgba(80, 200, 255, 0.6)";
+                              }}
+                            >
+                              ✏
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteTodo(todo.id);
+                              }}
+                              className="w-7 h-7 bg-transparent rounded-lg flex items-center justify-center text-red-400 text-lg hover:text-red-300 transition-all font-bold"
+                              style={{
+                                textShadow:
+                                  "0 0 8px rgba(239, 68, 68, 0.6)",
+                              }}
+                              title="삭제"
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.textShadow =
+                                  "0 0 12px rgba(239, 68, 68, 0.9)";
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.textShadow =
+                                  "0 0 8px rgba(239, 68, 68, 0.6)";
+                              }}
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))}
 
-                {/* 새 할 일 입력 */}
-                <input
-                  id={`todo-input-${category}`}
-                  type="text"
-                  placeholder="할 일의 내용"
-                  value={newTodoTexts[category] || ""}
-                  onChange={(e) =>
-                    setNewTodoTexts({
-                      ...newTodoTexts,
-                      [category]: e.target.value,
-                    })
-                  }
-                  onKeyPress={(e) => {
-                    if (e.key === "Enter") {
-                      handleAddTodo(category);
+                {/* 목록 끝 드롭 영역 */}
+                {dragOverCategory === category &&
+                  dragOverIndex ===
+                    (todosByCategory[category]?.length || 0) &&
+                  draggedTodo && (
+                    <div
+                      className="h-1 mt-2 bg-gradient-to-r from-cyan-400 to-blue-400 rounded"
+                      style={{
+                        boxShadow:
+                          "0 0 10px rgba(80, 200, 255, 0.6)",
+                      }}
+                    ></div>
+                  )}
+
+                {/* 새 할 일 입력 - + 버튼을 눌렀을 때만 표시 */}
+                {showInputForCategory[category] && (
+                  <input
+                    id={`todo-input-${category}`}
+                    type="text"
+                    placeholder="할 일의 내용"
+                    value={newTodoTexts[category] || ""}
+                    onChange={(e) =>
+                      setNewTodoTexts({
+                        ...newTodoTexts,
+                        [category]: e.target.value,
+                      })
                     }
-                  }}
-                  className="w-full p-2 bg-[#16213e] border border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none focus:border-gray-500"
-                />
+                    onKeyPress={(e) => {
+                      if (e.key === "Enter") {
+                        handleAddTodo(category);
+                      } else if (e.key === "Escape") {
+                        setShowInputForCategory({
+                          ...showInputForCategory,
+                          [category]: false,
+                        });
+                        setNewTodoTexts({
+                          ...newTodoTexts,
+                          [category]: "",
+                        });
+                      }
+                    }}
+                    onBlur={() => {
+                      if (!newTodoTexts[category]?.trim()) {
+                        setShowInputForCategory({
+                          ...showInputForCategory,
+                          [category]: false,
+                        });
+                      }
+                    }}
+                    className="w-full p-2 bg-[#0f1624] border border-cyan-500/30 rounded-xl text-cyan-100 placeholder-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400"
+                    style={{
+                      boxShadow:
+                        "inset 0 2px 4px rgba(0, 0, 0, 0.2)",
+                    }}
+                    autoFocus
+                  />
+                )}
               </div>
             </div>
           ))}
@@ -175,12 +527,29 @@ export default function TodoList({
                       setNewCategoryName("");
                     }
                   }}
-                  className="flex-1 bg-[#16213e] rounded px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:border focus:border-gray-500"
+                  className="flex-1 bg-[#0f1624] border border-cyan-500/30 rounded-xl px-3 py-2 text-cyan-100 placeholder-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400"
+                  style={{
+                    boxShadow:
+                      "inset 0 2px 4px rgba(0, 0, 0, 0.2)",
+                  }}
                   autoFocus
                 />
                 <button
                   onClick={handleAddCategory}
-                  className="w-8 h-8 bg-[#16213e] rounded-full flex items-center justify-center text-white text-lg hover:bg-[#1e2a4a] transition-colors"
+                  className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-full flex items-center justify-center text-white text-lg hover:from-cyan-400 hover:to-blue-400 transition-all"
+                  style={{
+                    boxShadow: "0 0 15px rgba(80, 200, 255, 0.5)",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.boxShadow =
+                      "0 0 20px rgba(80, 200, 255, 0.8)";
+                    e.currentTarget.style.transform = "scale(1.1)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.boxShadow =
+                      "0 0 15px rgba(80, 200, 255, 0.5)";
+                    e.currentTarget.style.transform = "scale(1)";
+                  }}
                 >
                   +
                 </button>
@@ -189,33 +558,99 @@ export default function TodoList({
           ) : (
             <button
               onClick={() => setIsAddingCategory(true)}
-              className="w-full p-3 bg-[#16213e] rounded text-white hover:bg-[#1e2a4a] transition-colors text-left"
+              className="w-full p-3 bg-[#16213e] rounded-xl text-cyan-300 hover:bg-[#1a1a2e] transition-all text-left font-medium border border-cyan-500/20 hover:border-cyan-500/40"
+              style={{
+                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.3)",
+                textShadow: "0 0 8px rgba(80, 200, 255, 0.4)",
+              }}
             >
-              + 새 카테고리 추가
+              + 새 행성 추가
             </button>
           )}
         </div>
 
-        {/* 발사 버튼 */}
-        <div className="pt-5 border-t border-gray-700">
-          <button
-            onClick={onLaunch}
-            disabled={checkedCount === 0}
-            className="
-              relative w-full p-4 bg-transparent border-none rounded-lg cursor-pointer
-              disabled:opacity-50 disabled:cursor-not-allowed
-              group
-            "
+        {/* 오른쪽: 캘린더 패널 */}
+        {isCalendarOpen && (
+          <div
+            className="border-l border-cyan-500/30 pl-4 flex flex-col h-full overflow-hidden"
+            style={{ width: CALENDAR_WIDTH }}
           >
-            <img
-              src="/src/assets/launch_button.png"
-              alt="발사 버튼"
+            <div className="mb-3 text-sm text-cyan-200 font-semibold">
+              날짜 선택
+            </div>
+
+            <div className="flex-1 overflow-y-auto custom-calendar-wrapper">
+              <ReactCalendar
+                onChange={(date) => setTempDate(date)}
+                value={tempDate}
+                locale="ko-KR"
+                className="custom-calendar"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 mt-3 pt-2 border-t border-cyan-500/30">
+              {/* 선택: tempDate를 확정 */}
+              <button
+                onClick={() => {
+                  setSelectedDate(tempDate);
+                  setIsCalendarOpen(false);
+                }}
+                className="px-3 py-1 text-sm rounded bg-blue-600 text-white hover:bg-blue-500"
+              >
+                선택
+              </button>
+
+              {/* 닫기: 날짜는 그대로 두고 닫기 */}
+              <button
+                onClick={() => {
+                  setIsCalendarOpen(false);
+                  // 필요하다면 tempDate를 selectedDate로 되돌리는 것도 가능:
+                  // setTempDate(selectedDate);
+                }}
+                className="px-3 py-1 text-sm rounded bg-gray-600 text-white hover:bg-gray-500"
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 발사 버튼 영역 */}
+      <div className="pt-5 border-t border-cyan-500/30">
+        <button
+          onClick={onLaunch}
+          disabled={checkedCount === 0 || isLaunching}
+          className="
+            relative w-full p-4 bg-transparent border-none rounded-lg cursor-pointer
+            disabled:opacity-50 disabled:cursor-not-allowed
+            group
+          "
+        >
+          <img
+            src="/src/assets/launch_button.png"
+            alt="발사 버튼"
+            className="
+              mx-auto w-32 h-auto
+              transition-transform duration-200
+              group-hover:scale-105
+            "
+          />
+          {isLaunching ? (
+            <div
               className="
-                mx-auto w-32 h-auto
-                transition-transform duration-200
-                group-hover:scale-105
+                absolute inset-0 flex items-center justify-center
+                pointer-events-none
               "
-            />
+            >
+              <div className="flex flex-col items-center gap-2">
+                <div className="w-6 h-6 border-2 border-cyan-300 border-t-transparent rounded-full animate-spin"></div>
+                <span className="text-cyan-300 text-xs font-medium">
+                  발사 중...
+                </span>
+              </div>
+            </div>
+          ) : (
             <span
               className="
                 absolute inset-0 flex items-center justify-center
@@ -227,55 +662,9 @@ export default function TodoList({
             >
               {checkedCount}
             </span>
-          </button>
-        </div>
+          )}
+        </button>
       </div>
-
-      {/* 오른쪽: 카드 안에서만 열리는 캘린더 영역 (ToDo와 같은 폭) */}
-      {isCalendarOpen && (
-        <div
-          className="border-l border-gray-700 p-4 flex flex-col h-full"
-          style={{ width: CELL_WIDTH }}
-        >
-          <div className="mb-3 text-sm text-white font-semibold">
-            날짜 선택
-          </div>
-
-          <div className="flex-1 overflow-y-auto">
-            <ReactCalendar
-              onChange={(date) => setTempDate(date)} // ✅ 임시 날짜만 변경
-              value={tempDate}                       // ✅ 달력은 tempDate 기준으로만 보여줌
-              locale="ko-KR"
-              className="custom-calendar"
-            />
-          </div>
-
-          <div className="flex justify-end gap-2 mt-3 pt-2 border-t border-gray-700">
-            {/* 선택: tempDate를 진짜 selectedDate로 확정 + 닫기 */}
-            <button
-              onClick={() => {
-                setSelectedDate(tempDate);
-                setIsCalendarOpen(false);
-              }}
-              className="px-3 py-1 text-sm rounded bg-blue-600 text-white hover:bg-blue-500"
-            >
-              선택
-            </button>
-
-            {/* 닫기: selectedDate는 그대로 두고, 창만 닫기 */}
-            <button
-              onClick={() => {
-                setIsCalendarOpen(false);
-                // 원상 복구 느낌을 원하면 다음 줄도 추가 가능:
-                // setTempDate(selectedDate);
-              }}
-              className="px-3 py-1 text-sm rounded bg-gray-600 text-white hover:bg-gray-500"
-            >
-              닫기
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
