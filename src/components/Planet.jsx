@@ -41,7 +41,7 @@ export default function Planet({ category, size, onClick }) {
 
   return (
     <div
-      className="flex flex-col items-center cursor-pointer transition-transform duration-300 hover:scale-110 planet-3d"
+      className="flex flex-col items-center cursor-pointer planet-3d planet-hover"
       onClick={onClick}
     >
       <div
@@ -123,4 +123,3 @@ export default function Planet({ category, size, onClick }) {
     </div>
   );
 }
-

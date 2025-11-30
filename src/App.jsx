@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import TodoList from "./components/TodoList";
 import Planet from "./components/Planet";
-import PlanetInfo from "./components/PlanetInfo";
+import PlanetModal from "./components/PlanetModal";
 import LLMChat from "./components/LLMChat";
 import ImageGenerator from "./components/ImageGenerator";
 import ChevronRight from "./assets/svg/ChevronRight";
@@ -56,6 +56,9 @@ function App() {
   const [completedTasks, setCompletedTasks] = useState([]);
   const [categories, setCategories] = useState(["냥냥성", "청소별", "공부별"]);
   const [selectedPlanetCategory, setSelectedPlanetCategory] = useState(null);
+  const [clickedPlanetCategories, setClickedPlanetCategories] = useState(
+    new Set()
+  );
   const [planetPositions, setPlanetPositions] = useState({});
   const containerRef = useRef(null);
   const prevCategoriesRef = useRef("");
@@ -325,12 +328,24 @@ function App() {
     setTodos((prev) => prev.filter((todo) => !todo.completed));
   };
 
-  const handlePlanetHover = (category) => {
-    setSelectedPlanetCategory(category);
+  const handlePlanetClick = (category) => {
+    setClickedPlanetCategories((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(category)) {
+        newSet.delete(category);
+      } else {
+        newSet.add(category);
+      }
+      return newSet;
+    });
   };
 
-  const handlePlanetLeave = () => {
-    setSelectedPlanetCategory(null);
+  const handleCloseModal = (category) => {
+    setClickedPlanetCategories((prev) => {
+      const newSet = new Set(prev);
+      newSet.delete(category);
+      return newSet;
+    });
   };
 
   return (
@@ -467,30 +482,11 @@ function App() {
                   transform: "translate(-50%, -50%)",
                 }}
               >
-                <div
-                  onMouseEnter={() => handlePlanetHover(category)}
-                  onMouseLeave={handlePlanetLeave}
-                >
-                  <Planet
-                    category={category}
-                    size={getPlanetSize(category)}
-                    onClick={() => {}}
-                  />
-                </div>
-
-                {selectedPlanetCategory === category && (
-                  <div
-                    onMouseEnter={() => handlePlanetHover(category)}
-                    onMouseLeave={handlePlanetLeave}
-                  >
-                    <PlanetInfo
-                      category={category}
-                      completedTasks={tasksByCategory[category] || []}
-                      planetPosition={position}
-                      planetSize={getPlanetSize(category)}
-                    />
-                  </div>
-                )}
+                <Planet
+                  category={category}
+                  size={getPlanetSize(category)}
+                  onClick={() => handlePlanetClick(category)}
+                />
               </div>
             );
           })}
@@ -502,6 +498,21 @@ function App() {
 
       {/* 이미지 생성 (우측 하단 floating, LLM 채팅 옆) */}
       <ImageGenerator />
+
+      {/* 행성 정보 모달들 */}
+      {Array.from(clickedPlanetCategories).map((category) => {
+        if (!planetPositions[category]) return null;
+        return (
+          <PlanetModal
+            key={category}
+            category={category}
+            completedTasks={tasksByCategory[category] || []}
+            planetPosition={planetPositions[category]}
+            planetSize={getPlanetSize(category)}
+            onClose={() => handleCloseModal(category)}
+          />
+        );
+      })}
     </div>
   );
 }
