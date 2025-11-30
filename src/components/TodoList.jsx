@@ -20,11 +20,11 @@ export default function TodoList({
 
   // 날짜 포맷팅 함수 (selectedDate 사용)
   const getDateString = () => {
-    const target = selectedDate;
-    const month = String(target.getMonth() + 1).padStart(2, "0");
-    const date = String(target.getDate()).padStart(2, "0");
+    const today = selectedDate;
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const date = String(today.getDate()).padStart(2, "0");
     const dayNames = ["일", "월", "화", "수", "목", "금", "토"];
-    const dayName = dayNames[target.getDay()];
+    const dayName = dayNames[today.getDay()];
     return `${month}.${date} (${dayName}) 일지`;
   };
 
@@ -144,7 +144,7 @@ export default function TodoList({
                   onChange={(e) =>
                     setNewTodoTexts({
                       ...newTodoTexts,
-                      [category]: e.target.value,
+                      [category]: e.today.value,
                     })
                   }
                   onKeyPress={(e) => {
@@ -166,7 +166,7 @@ export default function TodoList({
                   type="text"
                   placeholder="행성 이름"
                   value={newCategoryName}
-                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  onChange={(e) => setNewCategoryName(e.today.value)}
                   onKeyPress={(e) => {
                     if (e.key === "Enter") {
                       handleAddCategory();
