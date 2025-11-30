@@ -182,3 +182,93 @@
   animation: sun-rotate 120s linear infinite;
   transform-origin: 50% 50%;
 }
+
+
+/* 캘린더 박스 기본 */
+.custom-calendar {
+  background: #ffffff !important;
+  border-radius: 12px;
+  padding: 12px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* 카드 전역 button 스타일 때문에 깨지는 것 방지 */
+.custom-calendar button {
+  display: flex !important;
+  justify-content: center;
+  align-items: center;
+  width: auto !important;
+  max-width: 100%;
+  padding: 4px 0;
+}
+
+/* 날짜 영역을 다시 7열 그리드로 */
+.custom-calendar .react-calendar__month-view__days {
+  display: flex !important;
+  flex-wrap: wrap !important;
+}
+
+.custom-calendar .react-calendar__month-view__days__day {
+  flex: 0 0 14.2857% !important; /* 100 / 7 */
+}
+
+/* 요일(월~일)도 한 줄에 정렬 */
+.custom-calendar .react-calendar__month-view__weekdays {
+  display: flex !important;
+}
+
+.custom-calendar .react-calendar__month-view__weekdays__weekday {
+  flex: 0 0 14.2857% !important;
+  text-align: center;
+}
+
+/* 📌 기본 글씨색: 평일 black */
+.custom-calendar .react-calendar__tile {
+  color: #000 !important;
+}
+
+/* 📌 주말 날짜 빨강 */
+.custom-calendar .react-calendar__month-view__days__day--weekend {
+  color: #ff3b3b !important;
+}
+
+/* 📌 요일(header) 평일 검정 */
+.custom-calendar .react-calendar__month-view__weekdays__weekday abbr {
+  color: #000 !important;
+}
+
+/* 📌 요일(header) 토요일, 일요일 빨강 */
+.custom-calendar .react-calendar__month-view__weekdays__weekday:nth-child(6) abbr,
+.custom-calendar .react-calendar__month-view__weekdays__weekday:nth-child(7) abbr {
+  color: #ff3b3b !important;
+}
+
+/* 📌 연도/월 제목 검정 */
+.custom-calendar .react-calendar__navigation__label {
+  color: #000 !important;
+}
+
+/* 📌 네비게이션 화살표 검정 */
+.custom-calendar .react-calendar__navigation button {
+  color: #000 !important;
+}
+
+/* 📌 오늘 표시 */
+.custom-calendar .react-calendar__tile--now {
+  background: #e0f2ff !important;
+  color: #000 !important;
+}
+
+/* 📌 선택된 날짜 */
+.custom-calendar .react-calendar__tile--active {
+  background: #2563eb !important;
+  color: #fff !important;
+}
+
+/* 📌 이전/다음 월 날짜 연한 회색 */
+.custom-calendar .react-calendar__month-view__days__day--neighboringMonth {
+  color: #cccccc !important;
+}
+
