@@ -1,5 +1,7 @@
 import { useState } from "react";
-import Calendar from "../assets/svg/Calendar";
+import CalendarIcon from "../assets/svg/Calendar"; 
+import ReactCalendar from "react-calendar";
+import "react-calendar/dist/Calendar.css"; 
 
 export default function TodoList({
   todos,
@@ -12,10 +14,12 @@ export default function TodoList({
   const [newTodoTexts, setNewTodoTexts] = useState({});
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
-
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   // 날짜 포맷팅 함수
   const getDateString = () => {
-    const today = new Date();
+    //const today = new Date();
+    const today = selectedDate;
     const month = String(today.getMonth() + 1).padStart(2, "0");
     const date = String(today.getDate()).padStart(2, "0");
     const dayNames = ["일", "월", "화", "수", "목", "금", "토"];
@@ -51,11 +55,50 @@ export default function TodoList({
   const checkedCount = todos.filter((todo) => todo.completed).length;
 
   return (
-    <div className="max-h-[calc(100vh-40px)] bg-[#1a1a2e] p-5 flex flex-col overflow-y-auto rounded-lg shadow-2xl">
+    <div className="relative max-h-[calc(100vh-40px)] bg-[#1a1a2e] p-5 flex flex-col overflow-y-auto rounded-lg shadow-2xl">
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-700">
         <h2 className="text-white text-sm font-medium">{getDateString()}</h2>
-        <Calendar className="w-5 h-5 text-cyan-300" />
+       {/* 캘린더 버튼 + 패널 */}
+  <div className="relative">
+    <button
+      onClick={() => setIsCalendarOpen((prev) => !prev)}
+      className="p-1 rounded hover:bg-[#16213e] transition-colors"
+    >
+      <CalendarIcon className="w-5 h-5 text-cyan-300" />
+    </button>
+
+    {isCalendarOpen && (
+      <div
+        className="
+          absolute top-8 left-full ml-4
+          bg-[#1a1a2e] border border-gray-700 rounded-lg shadow-2xl
+          p-4 z-50 w-64
+        "
+      >
+        <div className="mb-3 text-sm text-white font-semibold">
+          날짜 선택
+        </div>
+
+         {/* 여기서 아예 달력 UI가 바로 보임 (스크롤/팝업 X) */}
+        <ReactCalendar
+          onChange={(date) => setSelectedDate(date)}
+          value={selectedDate}
+          locale="ko-KR"
+          className="bg-[#16213e] text-white rounded-lg p-2 border border-gray-700"
+        />
+
+        <div className="flex justify-end gap-2 mt-3">
+          <button
+            onClick={() => setIsCalendarOpen(false)}
+            className="px-3 py-1 text-sm rounded bg-gray-600 text-white hover:bg-gray-500"
+          >
+            닫기
+          </button>
+        </div>
+      </div>
+    )}
+  </div>
       </div>
 
       <div className="flex-1 overflow-y-auto mb-5 space-y-4">
