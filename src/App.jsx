@@ -64,7 +64,7 @@ function App() {
   const containerRef = useRef(null);
   const prevCategoriesRef = useRef("");
   const [sunCenter, setSunCenter] = useState({ x: 0, y: 0 });
-  const [isTodoListOpen, setIsTodoListOpen] = useState(false);
+  const [isTodoListOpen, setIsTodoListOpen] = useState(true);
   const [rocketAnimations, setRocketAnimations] = useState([]);
   const [expandingPlanets, setExpandingPlanets] = useState(new Set());
   const [isLaunching, setIsLaunching] = useState(false);
@@ -487,6 +487,7 @@ function App() {
               onDeleteTodo={handleDeleteTodo}
               onUpdateTodo={handleUpdateTodo}
               isLaunching={isLaunching}
+              onPlanetClick={handlePlanetClick}
             />
           </div>
 

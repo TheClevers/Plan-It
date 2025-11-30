@@ -12,6 +12,7 @@ export default function TodoList({
   onDeleteTodo,
   onUpdateTodo,
   isLaunching = false,
+  onPlanetClick,
 }) {
   const [newTodoTexts, setNewTodoTexts] = useState({});
   const [isAddingCategory, setIsAddingCategory] = useState(false);
@@ -178,7 +179,7 @@ export default function TodoList({
             {/* 카테고리 헤더 */}
             <div className="flex items-center gap-2 mb-2">
               <div
-                className={`flex-1 bg-gradient-to-r from-[#16213e] to-[#1a1a2e] rounded-xl px-3 py-2 transition-all ${
+                className={`flex-1 bg-gradient-to-r from-[#16213e] to-[#1a1a2e] rounded-xl px-3 py-2 transition-all cursor-pointer hover:from-[#1a1a2e] hover:to-[#16213e] ${
                   dragOverCategory === category && dragOverIndex === -1
                     ? "ring-2 ring-cyan-400 shadow-lg"
                     : ""
@@ -196,6 +197,12 @@ export default function TodoList({
                   handleDragOver(e, category, -1);
                 }}
                 onDrop={(e) => handleDrop(e, category, -1)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onPlanetClick) {
+                    onPlanetClick(category);
+                  }
+                }}
               >
                 <span
                   className="text-cyan-200 font-medium"
@@ -208,16 +215,16 @@ export default function TodoList({
                 onClick={() => handleToggleInput(category)}
                 className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-full flex items-center justify-center text-white text-lg hover:from-cyan-400 hover:to-blue-400 transition-all"
                 style={{
-                  boxShadow: "0 0 15px rgba(80, 200, 255, 0.5)",
+                  boxShadow: "0 0 8px rgba(80, 200, 255, 0.4)",
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.boxShadow =
-                    "0 0 20px rgba(80, 200, 255, 0.8)";
-                  e.currentTarget.style.transform = "scale(1.1)";
+                    "0 0 12px rgba(80, 200, 255, 0.6)";
+                  e.currentTarget.style.transform = "scale(1.05)";
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.boxShadow =
-                    "0 0 15px rgba(80, 200, 255, 0.5)";
+                    "0 0 8px rgba(80, 200, 255, 0.4)";
                   e.currentTarget.style.transform = "scale(1)";
                 }}
               >
