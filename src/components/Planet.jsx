@@ -43,12 +43,16 @@ export default function Planet({ category, size, onClick }) {
     <div
       className="flex flex-col items-center cursor-pointer planet-3d planet-hover"
       onClick={onClick}
+      style={{
+        transition: "transform 0.5s ease-out",
+      }}
     >
       <div
         className="rounded-full flex items-center justify-center relative overflow-hidden"
         style={{
           width: `${size}px`,
           height: `${size}px`,
+          transition: "width 0.5s ease-out, height 0.5s ease-out",
         }}
       >
         {planetImage ? (

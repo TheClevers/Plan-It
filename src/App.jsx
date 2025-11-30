@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import TodoList from "./components/TodoList";
 import Planet from "./components/Planet";
 import PlanetModal from "./components/PlanetModal";
+import RocketAnimation from "./components/RocketAnimation";
 import LLMChat from "./components/LLMChat";
 import ImageGenerator from "./components/ImageGenerator";
 import ChevronRight from "./assets/svg/ChevronRight";
@@ -64,6 +65,9 @@ function App() {
   const prevCategoriesRef = useRef("");
   const [sunCenter, setSunCenter] = useState({ x: 0, y: 0 });
   const [isTodoListOpen, setIsTodoListOpen] = useState(false);
+  const [rocketAnimations, setRocketAnimations] = useState([]);
+  const [expandingPlanets, setExpandingPlanets] = useState(new Set());
+  const [isLaunching, setIsLaunching] = useState(false);
 
   const handleLogout = () => {
     navigate("/login");
@@ -312,20 +316,76 @@ function App() {
   const handleLaunch = async () => {
     const checkedTodos = todos.filter((todo) => todo.completed);
 
-    if (checkedTodos.length === 0) return;
+    if (checkedTodos.length === 0 || isLaunching) return;
 
-    // 완료된 할 일들을 completedTasks에 추가
-    const newCompletedTasks = checkedTodos.map((todo) => ({
-      id: todo.id,
-      text: todo.text,
-      category: todo.category,
-      completedAt: new Date(),
-    }));
+    // 발사 시작 - 버튼 비활성화
+    setIsLaunching(true);
 
-    setCompletedTasks((prev) => [...prev, ...newCompletedTasks]);
+    // 완료된 할 일들의 위치 가져오기
+    const todoElements = document.querySelectorAll("[data-todo-id]");
+    const rockets = [];
 
-    // 완료된 할 일들을 todos에서 제거
-    setTodos((prev) => prev.filter((todo) => !todo.completed));
+    checkedTodos.forEach((todo) => {
+      const todoElement = Array.from(todoElements).find(
+        (el) => el.getAttribute("data-todo-id") === todo.id
+      );
+
+      if (todoElement && planetPositions[todo.category]) {
+        const todoRect = todoElement.getBoundingClientRect();
+        const startX = todoRect.left + todoRect.width / 2;
+        const startY = todoRect.top + todoRect.height / 2;
+
+        const planetPos = planetPositions[todo.category];
+        const endX = planetPos.x;
+        const endY = planetPos.y;
+
+        rockets.push({
+          id: `rocket-${todo.id}-${Date.now()}`,
+          startPosition: { x: startX, y: startY },
+          endPosition: { x: endX, y: endY },
+          category: todo.category,
+          todoId: todo.id,
+        });
+      }
+    });
+
+    // 로켓 애니메이션 시작
+    setRocketAnimations(rockets);
+
+    // 각 로켓 애니메이션 완료 후 처리
+    rockets.forEach((rocket) => {
+      setTimeout(() => {
+        // 행성 크기 증가 애니메이션
+        setExpandingPlanets((prev) => new Set(prev).add(rocket.category));
+
+        setTimeout(() => {
+          setExpandingPlanets((prev) => {
+            const newSet = new Set(prev);
+            newSet.delete(rocket.category);
+            return newSet;
+          });
+        }, 500);
+
+        // 로켓 제거
+        setRocketAnimations((prev) => prev.filter((r) => r.id !== rocket.id));
+      }, 1500); // 로켓 애니메이션 시간 (1.5초)
+    });
+
+    // 모든 로켓 애니메이션 완료 후 데이터 업데이트
+    setTimeout(() => {
+      const newCompletedTasks = checkedTodos.map((todo) => ({
+        id: todo.id,
+        text: todo.text,
+        category: todo.category,
+        completedAt: new Date(),
+      }));
+
+      setCompletedTasks((prev) => [...prev, ...newCompletedTasks]);
+      setTodos((prev) => prev.filter((todo) => !todo.completed));
+
+      // 발사 완료 - 버튼 활성화
+      setIsLaunching(false);
+    }, 2000);
   };
 
   const handlePlanetClick = (category) => {
@@ -399,6 +459,7 @@ function App() {
               onMoveTodo={handleMoveTodo}
               onDeleteTodo={handleDeleteTodo}
               onUpdateTodo={handleUpdateTodo}
+              isLaunching={isLaunching}
             />
           </div>
 
@@ -484,7 +545,11 @@ function App() {
               >
                 <Planet
                   category={category}
-                  size={getPlanetSize(category)}
+                  size={
+                    expandingPlanets.has(category)
+                      ? getPlanetSize(category) * 1.2
+                      : getPlanetSize(category)
+                  }
                   onClick={() => handlePlanetClick(category)}
                 />
               </div>
@@ -513,6 +578,20 @@ function App() {
           />
         );
       })}
+
+      {/* 로켓 애니메이션들 */}
+      {rocketAnimations.map((rocket) => (
+        <RocketAnimation
+          key={rocket.id}
+          id={rocket.id}
+          startPosition={rocket.startPosition}
+          endPosition={rocket.endPosition}
+          category={rocket.category}
+          onComplete={() => {
+            // 로켓 제거는 이미 handleLaunch에서 처리됨
+          }}
+        />
+      ))}
     </div>
   );
 }

@@ -11,6 +11,7 @@ export default function TodoList({
   onMoveTodo,
   onDeleteTodo,
   onUpdateTodo,
+  isLaunching = false,
 }) {
   const [newTodoTexts, setNewTodoTexts] = useState({});
   const [isAddingCategory, setIsAddingCategory] = useState(false);
@@ -304,6 +305,7 @@ export default function TodoList({
                   ) : (
                     // 일반 모드
                     <div
+                      data-todo-id={todo.id}
                       draggable
                       onDragStart={(e) => handleDragStart(e, todo)}
                       onDragOver={(e) => {
@@ -511,7 +513,7 @@ export default function TodoList({
               textShadow: "0 0 8px rgba(80, 200, 255, 0.4)",
             }}
           >
-            + 새 카테고리 추가
+            + 새 행성 추가
           </button>
         )}
       </div>
@@ -519,7 +521,7 @@ export default function TodoList({
       <div className="pt-5 border-t border-cyan-500/30">
         <button
           onClick={onLaunch}
-          disabled={checkedCount === 0}
+          disabled={checkedCount === 0 || isLaunching}
           className="
             relative w-full p-4 bg-transparent border-none rounded-lg cursor-pointer
             disabled:opacity-50 disabled:cursor-not-allowed
@@ -537,18 +539,34 @@ export default function TodoList({
             "
           />
 
-          {/* 중앙 숫자 */}
-          <span
-            className="
-              absolute inset-0 flex items-center justify-center
-              text-white font-bold text-lg
-              pointer-events-none
-              transition-all duration-200
-              group-hover:scale-110
-            "
-          >
-            {checkedCount}
-          </span>
+          {/* 중앙 숫자 또는 로딩 */}
+          {isLaunching ? (
+            <div
+              className="
+                absolute inset-0 flex items-center justify-center
+                pointer-events-none
+              "
+            >
+              <div className="flex flex-col items-center gap-2">
+                <div className="w-6 h-6 border-2 border-cyan-300 border-t-transparent rounded-full animate-spin"></div>
+                <span className="text-cyan-300 text-xs font-medium">
+                  발사 중...
+                </span>
+              </div>
+            </div>
+          ) : (
+            <span
+              className="
+                absolute inset-0 flex items-center justify-center
+                text-white font-bold text-lg
+                pointer-events-none
+                transition-all duration-200
+                group-hover:scale-110
+              "
+            >
+              {checkedCount}
+            </span>
+          )}
         </button>
       </div>
     </div>
