@@ -324,9 +324,9 @@ function App() {
           {/* 접는 버튼 (왼쪽 화살표) - TodoList 오른쪽 */}
           <button
             onClick={toggleTodoList}
-            className="w-10 h-20 bg-[#1a1a2e] border-2 border-l-0 border-cyan-300 rounded-r-lg shadow-[0_0_8px_rgba(34,211,238,0.5)] flex items-center justify-center text-cyan-300 hover:bg-[#1e2a4a] transition-all hover:scale-105"
+            className="w-16 h-48 flex items-center justify-center text-white/60 hover:text-white/80 transition-all hover:scale-110 cursor-pointer"
           >
-            <ChevronLeft className="w-5 h-5" />
+            <ChevronLeft className="w-full h-full" />
           </button>
         </div>
 
@@ -340,9 +340,9 @@ function App() {
         >
           <button
             onClick={toggleTodoList}
-            className="w-10 h-20 bg-[#1a1a2e] border-2 border-r-0 border-cyan-300 rounded-l-lg shadow-[0_0_8px_rgba(34,211,238,0.5)] flex items-center justify-center text-cyan-300 hover:bg-[#1e2a4a] transition-all hover:scale-105"
+            className="w-16 h-48 flex items-center justify-center text-white/60 hover:text-white/80 transition-all hover:scale-110 cursor-pointer"
           >
-            <ChevronRight className="w-5 h-5" />
+            <ChevronRight className="w-full h-full" />
           </button>
         </div>
 
