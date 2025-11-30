@@ -28,10 +28,10 @@ export function fileToBase64(file) {
 /**
  * Gemini LLM을 사용하여 이미지를 생성하는 함수
  * @param {string} prompt - 이미지 생성 프롬프트
- * @param {File|null} exampleImage - 예시 이미지 파일 (선택사항)
+ * @param {File|File[]|null} exampleImages - 예시 이미지 파일 또는 파일 배열 (선택사항)
  * @returns {Promise<string>} base64 인코딩된 이미지 데이터 URL
  */
-export async function generateImage(prompt, exampleImage = null) {
+export async function generateImage(prompt, exampleImages = null) {
   try {
     if (!apiKey) {
       console.error(
@@ -43,15 +43,21 @@ export async function generateImage(prompt, exampleImage = null) {
     // contents 배열 구성
     const contentParts = [{ text: prompt }];
 
-    // 예시 이미지가 있으면 추가
-    if (exampleImage) {
-      const imageData = await fileToBase64(exampleImage);
-      contentParts.push({
-        inlineData: {
-          data: imageData.data,
-          mimeType: imageData.mimeType,
-        },
-      });
+    // 예시 이미지가 여러 개일 수 있게 처리
+    if (exampleImages) {
+      const files = Array.isArray(exampleImages)
+        ? exampleImages
+        : [exampleImages];
+
+      for (const file of files) {
+        const imageData = await fileToBase64(file);
+        contentParts.push({
+          inlineData: {
+            data: imageData.data,
+            mimeType: imageData.mimeType,
+          },
+        });
+      }
     }
 
     const response = await ai.models.generateContent({

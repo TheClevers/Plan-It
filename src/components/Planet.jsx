@@ -2,21 +2,25 @@ import planetCat from "../assets/planet_cat.png";
 import planetClean from "../assets/planet_clean.png";
 import planetStudy from "../assets/planet_study.png";
 
-export default function Planet({ category, size, onClick }) {
-  // 카테고리별 이미지 매핑
+export default function Planet({ category, size, onClick, imageUrl }) {
+  // 카테고리별 기본 이미지 매핑
   const getPlanetImage = (category) => {
-    if (category.includes("냥냥") || category.includes("cat")) {
+    if (category.includes("냥냥") || category.toLowerCase().includes("cat")) {
       return planetCat;
-    } else if (category.includes("청소") || category.includes("clean")) {
+    } else if (category.includes("청소") || category.toLowerCase().includes("clean")) {
       return planetClean;
-    } else if (category.includes("공부") || category.includes("study")) {
+    } else if (category.includes("공부") || category.toLowerCase().includes("study")) {
       return planetStudy;
     }
     return null;
   };
 
-  const planetImage = getPlanetImage(category);
-  // 각 행성마다 다른 색상 그라데이션 생성
+  // 1순위: Gemini가 생성한 이미지
+  // 2순위: 카테고리별 기본 행성 이미지
+  const basePlanetImage = getPlanetImage(category);
+  const planetImage = imageUrl || basePlanetImage;
+
+  // 각 행성마다 다른 색상 그라데이션 (텍스트/배경용)
   const planetColors = [
     { from: "#667eea", to: "#764ba2" },
     { from: "#f093fb", to: "#f5576c" },
@@ -53,6 +57,9 @@ export default function Planet({ category, size, onClick }) {
           width: `${size}px`,
           height: `${size}px`,
           transition: "width 0.5s ease-out, height 0.5s ease-out",
+          // AI 이미지가 있을 때도 은은한 그라데이션이 뒤에 깔리도록
+          background: `radial-gradient(circle at 30% 30%, ${colors.from}, ${colors.to})`,
+          boxShadow: `0 0 15px ${hexToRgba(colors.to, 0.7)}`,
         }}
       >
         {planetImage ? (
@@ -61,10 +68,11 @@ export default function Planet({ category, size, onClick }) {
             alt={category}
             className="rounded-full"
             style={{
-              width: `${size}px`,
-              height: `${size}px`,
-              objectFit: "contain",
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
             }}
+            draggable={false}
           />
         ) : (
           <div

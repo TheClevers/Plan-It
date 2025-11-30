@@ -1,4 +1,10 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import TodoList from "./components/TodoList";
 import Planet from "./components/Planet";
@@ -9,13 +15,26 @@ import ImageGenerator from "./components/ImageGenerator";
 import ChevronRight from "./assets/svg/ChevronRight";
 import ChevronLeft from "./assets/svg/ChevronLeft";
 
+// 레퍼런스 이미지 8장
+import ref1 from "./assets/reference/planet_ref1.png";
+import ref2 from "./assets/reference/planet_ref2.png";
+import ref3 from "./assets/reference/planet_ref3.png";
+import ref4 from "./assets/reference/planet_ref4.png";
+import ref5 from "./assets/reference/planet_ref5.png";
+import ref6 from "./assets/reference/planet_ref6.png";
+import ref7 from "./assets/reference/planet_ref7.png";
+import ref8 from "./assets/reference/planet_ref8.png";
+
+// 👇 Gemini 이미지 생성 함수
+import { generateImage } from "./services/geminiImage";
+
 // 태양 관련 상수
 const SUN_SIZE = 800; // 태양 이미지 크기(px)
 const SUN_LEFT_OFFSET = (-SUN_SIZE * 3) / 4; // 화면 왼쪽 밖으로 3/4 나가게
 const SUN_BOTTOM_OFFSET = 40; // 아래에서 40px 위
 
 // 행성 관련 상수
-const PLANET_ORBIT_RADIUS_OPTION = [350, 500, 750, 1000, 1250];
+const PLANET_ORBIT_RADIUS_OPTION = [350, 500, 750, 1000, 1250, 1500];
 const PLANET_ORBIT_RADIUS = {
   냥냥성: 500,
   청소별: 750,
@@ -37,6 +56,8 @@ function getWeightedRandomRadius() {
       return PLANET_ORBIT_RADIUS_OPTION[i];
     }
   }
+  // 혹시라도 못 뽑으면 마지막 값
+  return PLANET_ORBIT_RADIUS_OPTION[PLANET_ORBIT_RADIUS_OPTION.length - 1];
 }
 
 const getOrbitRadius = (category) => {
@@ -51,6 +72,22 @@ function calDistance(r1, theta1, r2, theta2) {
   return Math.sqrt(r1 * r1 + r2 * r2 - 2 * r1 * r2 * Math.cos(theta1 - theta2));
 }
 
+// 카테고리만 변수로 들어가는 행성 이미지 프롬프트
+function buildPlanetPrompt(category) {
+  return `
+Generate a 2D, outlineless, casual cel-shaded planet illustration with a vibrant style.
+The planet's theme is defined by a keyword (e.g., "Cleaning Planet", "Study Planet").
+The keyword is: "${category}".
+
+Arrange elements relevant to the keyword directly on the planet's surface to reflect the theme.
+Ensure a solid #000000 (pure black) background.
+
+Absolutely no outlines, watermarks, alphabets, or any kind of language text/letters are allowed in the generated image.
+Avoid realistic facial features on creature/pet planets; use stylized, deformed features only.
+Do not generate in 3D style.
+`.trim();
+}
+
 function App() {
   const navigate = useNavigate();
   const [todos, setTodos] = useState([]);
@@ -61,6 +98,10 @@ function App() {
     new Set()
   );
   const [planetPositions, setPlanetPositions] = useState({});
+
+  // 카테고리별 Gemini가 생성한 행성 이미지 URL
+  const [planetImages, setPlanetImages] = useState({});
+
   const containerRef = useRef(null);
   const prevCategoriesRef = useRef("");
   const [sunCenter, setSunCenter] = useState({ x: 0, y: 0 });
@@ -102,8 +143,13 @@ function App() {
     [tasksByCategory]
   );
 
+  async function urlToFile(url, filename) {
+  const res = await fetch(url);
+  const blob = await res.blob();
+  return new File([blob], filename, { type: blob.type });
+}
+
   // 모든 카테고리 목록 (categories, todos, completedTasks에서 추출)
-  // useMemo로 메모이제이션하여 불필요한 재계산 방지
   const allCategories = useMemo(() => {
     return Array.from(
       new Set([
@@ -123,7 +169,7 @@ function App() {
     return Array.from(radiiSet);
   }, [allCategories]);
 
-  // 태양 기준으로 행성 위치 생성 (새 카테고리만 랜덤 각도 배치)
+  // 🌞 태양 기준으로 행성 위치 생성 (새 카테고리만 랜덤 각도 배치)
   useEffect(() => {
     if (!containerRef.current || allCategories.length === 0) return;
 
@@ -185,7 +231,6 @@ function App() {
           valid = true;
 
           // 기존 행성들과 거리 검사
-          // TODO: 같은 궤도 내의 행성들만 검사하게끔 바꾸면 더 효율적임
           for (const otherCat in next) {
             const other = next[otherCat];
             const otherAngle = Math.atan2(
@@ -220,8 +265,46 @@ function App() {
     });
   }, [allCategories, getPlanetSize]);
 
+  // Gemini 호출: 카테고리마다 행성 이미지 생성 (이미 생성된 건 다시 안 부름)
+useEffect(() => {
+  if (allCategories.length === 0) return;
+
+  const categoriesWithoutImage = allCategories.filter(
+    (cat) => !planetImages[cat]
+  );
+
+  if (categoriesWithoutImage.length === 0) return;
+
+  categoriesWithoutImage.forEach(async (category) => {
+    try {
+      // URL 목록을 File[] 로 변환
+      const fileRefs = await Promise.all(
+        [ref1, ref2, ref3, ref4, ref5, ref6, ref7, ref8].map((url, idx) =>
+          urlToFile(url, `ref${idx + 1}.png`)
+        )
+      );
+
+      // 프롬프트 생성
+      const prompt = buildPlanetPrompt(category);
+
+      // File[] 전달
+      const dataUrl = await generateImage(prompt, fileRefs);
+
+      // 이미지 저장
+      if (dataUrl) {
+        setPlanetImages((prev) =>
+          prev[category] ? prev : { ...prev, [category]: dataUrl }
+        );
+      }
+    } catch (err) {
+      console.error("Gemini 행성 이미지 생성 실패:", category, err);
+    }
+  });
+}, [allCategories, planetImages]);
+
+
   const handleAddCategory = (category) => {
-    const trimmed = category.trim();
+    const trimmed = category.trim(); // 실수로 넣은 공백 제거
     if (trimmed && !categories.includes(trimmed)) {
       setCategories([...categories, trimmed]);
     }
@@ -296,12 +379,12 @@ function App() {
       newTargetCategoryTodos.splice(finalIndex, 0, newTodo);
 
       // 모든 카테고리의 할 일들을 순서대로 합치기
-      const allCategories = Array.from(
+      const allCats = Array.from(
         new Set([...Object.keys(todosByCategory), targetCategory])
       );
 
       const result = [];
-      allCategories.forEach((cat) => {
+      allCats.forEach((cat) => {
         if (cat === targetCategory) {
           result.push(...newTargetCategoryTodos);
         } else {
@@ -427,6 +510,13 @@ function App() {
       return newPositions;
     });
 
+    // 행성 이미지 제거
+    setPlanetImages((prev) => {
+      const copy = { ...prev };
+      delete copy[category];
+      return copy;
+    });
+
     // 모달 닫기
     setClickedPlanetCategories((prev) => {
       const newSet = new Set(prev);
@@ -500,7 +590,7 @@ function App() {
           </button>
         </div>
 
-        {/* 닫혀있을 때 펼치는 버튼 (오른쪽 화살표) - TodoList와 같은 애니메이션 */}
+        {/* 닫혀있을 때 펼치는 버튼 (오른쪽 화살표) */}
         <div
           className={`absolute top-1/2 left-5 -translate-y-1/2 z-40 transition-all duration-300 ${
             !isTodoListOpen
@@ -561,6 +651,8 @@ function App() {
             const position = planetPositions[category];
             if (!position) return null;
 
+            const imageUrl = planetImages[category] || null;
+
             return (
               <div
                 key={category}
@@ -578,6 +670,7 @@ function App() {
                       ? getPlanetSize(category) * 1.2
                       : getPlanetSize(category)
                   }
+                  imageUrl={imageUrl} // 🔹 Gemini가 만든 이미지 전달
                   onClick={() => handlePlanetClick(category)}
                 />
               </div>
