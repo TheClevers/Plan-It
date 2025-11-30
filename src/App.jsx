@@ -5,7 +5,8 @@ import Planet from "./components/Planet";
 import PlanetInfo from "./components/PlanetInfo";
 import LLMChat from "./components/LLMChat";
 import ImageGenerator from "./components/ImageGenerator";
-import ChevronDown from "./assets/svg/ChevronDown";
+import ChevronRight from "./assets/svg/ChevronRight";
+import ChevronLeft from "./assets/svg/ChevronLeft";
 
 // 태양 관련 상수
 const SUN_SIZE = 800; // 태양 이미지 크기(px)
@@ -291,43 +292,58 @@ function App() {
         style={{ minHeight: "100vh" }}
       >
         {/* TodoList 토글 컨트롤 */}
-        <div className="absolute top-5 left-5 z-50 flex items-center gap-2">
+        <div className="absolute top-5 left-5 z-50">
           <img
             src="/favicon.png"
             alt="todo list button"
             className="w-12 h-12"
             draggable={false}
           />
+        </div>
 
-          {/* 펼치기/접기 화살표 */}
+        {/* TodoList 컨테이너 - 접는 버튼 포함 */}
+        <div
+          className={`absolute top-1/2 left-5 -translate-y-1/2 z-40 transition-all duration-300 flex items-center ${
+            isTodoListOpen
+              ? "translate-x-0 opacity-100"
+              : "-translate-x-full opacity-0 pointer-events-none"
+          }`}
+        >
+          {/* TodoList 카드 */}
+          <div className="w-[300px]">
+            <TodoList
+              todos={todos}
+              categories={allCategories}
+              onAddTodo={handleAddTodo}
+              onToggleTodo={handleToggleTodo}
+              onLaunch={handleLaunch}
+              onAddCategory={handleAddCategory}
+            />
+          </div>
+
+          {/* 접는 버튼 (왼쪽 화살표) - TodoList 오른쪽 */}
           <button
             onClick={toggleTodoList}
-            className="w-10 h-10 bg-[#1a1a2e] border-2 border-cyan-300 rounded-lg shadow-[0_0_8px_rgba(34,211,238,0.5)] flex items-center justify-center text-cyan-300 hover:bg-[#1e2a4a] transition-all hover:scale-110"
+            className="w-10 h-20 bg-[#1a1a2e] border-2 border-l-0 border-cyan-300 rounded-r-lg shadow-[0_0_8px_rgba(34,211,238,0.5)] flex items-center justify-center text-cyan-300 hover:bg-[#1e2a4a] transition-all hover:scale-105"
           >
-            <ChevronDown
-              className={`w-5 h-5 transition-transform duration-300 ${
-                isTodoListOpen ? "rotate-180" : ""
-              }`}
-            />
+            <ChevronLeft className="w-5 h-5" />
           </button>
         </div>
 
-        {/* TodoList - 떠있는 카드 */}
+        {/* 닫혀있을 때 펼치는 버튼 (오른쪽 화살표) - TodoList와 같은 애니메이션 */}
         <div
-          className={`absolute top-[68px] left-5 w-[300px] z-40 transition-all duration-300 ${
-            isTodoListOpen
-              ? "opacity-100 translate-y-0"
-              : "opacity-0 -translate-y-4 pointer-events-none"
+          className={`absolute top-1/2 left-5 -translate-y-1/2 z-40 transition-all duration-300 ${
+            !isTodoListOpen
+              ? "translate-x-0 opacity-100"
+              : "-translate-x-full opacity-0 pointer-events-none"
           }`}
         >
-          <TodoList
-            todos={todos}
-            categories={allCategories}
-            onAddTodo={handleAddTodo}
-            onToggleTodo={handleToggleTodo}
-            onLaunch={handleLaunch}
-            onAddCategory={handleAddCategory}
-          />
+          <button
+            onClick={toggleTodoList}
+            className="w-10 h-20 bg-[#1a1a2e] border-2 border-r-0 border-cyan-300 rounded-l-lg shadow-[0_0_8px_rgba(34,211,238,0.5)] flex items-center justify-center text-cyan-300 hover:bg-[#1e2a4a] transition-all hover:scale-105"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
         </div>
 
         {/* 태양 이미지 — 왼쪽 중앙, 화면 밖으로 나가게 */}

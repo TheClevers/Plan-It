@@ -51,7 +51,7 @@ export default function TodoList({
   const checkedCount = todos.filter((todo) => todo.completed).length;
 
   return (
-    <div className="h-full bg-[#1a1a2e] p-5 flex flex-col overflow-y-auto rounded-lg shadow-2xl">
+    <div className="max-h-[calc(100vh-40px)] bg-[#1a1a2e] p-5 flex flex-col overflow-y-auto rounded-lg shadow-2xl">
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-700">
         <h2 className="text-white text-sm font-medium">{getDateString()}</h2>
