@@ -82,23 +82,55 @@ The keyword is: "${category}".
 Arrange elements relevant to the keyword directly on the planet's surface to reflect the theme.
 Ensure a solid #000000 (pure black) background.
 
-Absolutely no outlines, watermarks, alphabets, or any kind of language text/letters are allowed in the generated image.
-Avoid realistic facial features on creature/pet planets; use stylized, deformed features only.
-Do not generate in 3D style.
-
 Outlineless Cel Shading (no black or colored outlines whatsoever).
 
 Casual, vibrant style as seen in your reference images.
 
 NO realistic facial features (eyes, nose, mouth). Only stylized, deformed ears and tail.
 
-Solid \#000000 (pure black) background.
+Solid #000000 (pure black) background.
 
 NO watermarks.
 
 NO alphabet or any kind of language alphabets.
-
 `.trim();
+}
+
+function removeBlackBackgroundFromDataUrl(dataUrl, threshold = 10) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+
+      canvas.width = img.width;
+      canvas.height = img.height;
+
+      ctx.drawImage(img, 0, 0);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        const a = data[i + 3];
+
+        if (a !== 0 && r < threshold && g < threshold && b < threshold) {
+          data[i + 3] = 0;
+        }
+      }
+
+      ctx.putImageData(imageData, 0, 0);
+      const newDataUrl = canvas.toDataURL("image/png");
+      resolve(newDataUrl);
+    };
+
+    img.onerror = (err) => reject(err);
+    img.src = dataUrl;
+  });
 }
 
 function App() {
@@ -301,14 +333,16 @@ useEffect(() => {
       const prompt = buildPlanetPrompt(category);
 
       // File[] 전달
-      const dataUrl = await generateImage(prompt, fileRefs);
+      const rawDataUrl = await generateImage(prompt, fileRefs);
 
-      // 이미지 저장
-      if (dataUrl) {
-        setPlanetImages((prev) =>
-          prev[category] ? prev : { ...prev, [category]: dataUrl }
-        );
-      }
+      // 🔥 배경 제거 후 결과 사용
+      if (rawDataUrl) {
+      const cleanedDataUrl = await removeBlackBackgroundFromDataUrl(rawDataUrl);
+
+      setPlanetImages((prev) =>
+        prev[category] ? prev : { ...prev, [category]: cleanedDataUrl }
+      );
+    }
     } catch (err) {
       console.error("Gemini 행성 이미지 생성 실패:", category, err);
     }
