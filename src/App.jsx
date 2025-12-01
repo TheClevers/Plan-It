@@ -118,6 +118,88 @@ function App() {
     setIsTodoListOpen((prev) => !prev);
   };
 
+  //BACKEND: client id 가져오기
+  const getClientId = () => {
+  let id = localStorage.getItem("clientId");
+  if (!id) {
+    id = Date.now().toString() + "-" + Math.random().toString(36).slice(2,9);
+    localStorage.setItem("clientId", id);
+  }
+  return id;
+  };
+  const clientId = getClientId();
+  
+  //BACKEND: TODO 가져오기
+  useEffect(() => {
+  const fetchTodos = async () => {
+    try {
+      const res = await fetch("/api/todos");
+      const data = await res.json(); 
+
+      // Normalize each todo
+      const normalized = data.map(item => ({
+        id: item._id || item.id,
+        text: item.text,
+        category: item.category || "Uncategorized",
+        completed: item.completed ?? false,
+        completedAt: item.completedAt || null,
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt,
+        clientId: item.clientId,
+        _raw: item
+      }));
+
+      setTodos(normalized);
+
+      // Extract categories
+      const extractedCategories = Array.from(
+        new Set(normalized.map(t => t.category))
+      );
+
+      setCategories(prev =>
+        Array.from(new Set([...prev, ...extractedCategories]))
+      );
+
+    } catch (err) {
+      console.error("Failed to fetch todos", err);
+    }
+  };
+  fetchTodos();
+  }, []);
+
+  //BACKEND: PLANETS 가져오기 + planet의 카테고리 채우기
+  const [planets, setPlanets] = useState([]);
+  useEffect(() => {
+  const fetchPlanets = async () => {
+  try {
+    const response = await fetch("/api/planets"); 
+    if (!response.ok) throw new Error("Failed to fetch planets");
+
+    const planetsData = await response.json();
+    console.log("All planets:", planetsData);
+    setPlanets(planetsData);
+
+    // Extract category from each planet
+    const planetCategories = planetsData.map(p => p.category);
+
+    // Merge with existing categories and remove duplicates
+    setCategories(prev => Array.from(new Set([...prev, ...planetCategories])));
+
+    // You can store planets in state for later use
+    setPlanets(planetsData); 
+  } 
+  catch (err) {
+    console.error(err);
+    alert("Error fetching planets: " + err.message);
+  }
+  }; fetchPlanets();
+  }, []);
+
+  //카테고리를 planetId로 전환
+  const categoryToPlanetId = Object.fromEntries(
+  planets.map(planet => [planet.category, planet._id])
+  );
+
   // 카테고리별로 완료된 할 일들을 그룹화
   const tasksByCategory = completedTasks.reduce((acc, task) => {
     if (!acc[task.category]) {
@@ -302,45 +384,238 @@ useEffect(() => {
   });
 }, [allCategories, planetImages]);
 
-
-  const handleAddCategory = (category) => {
+  //카테고리 생성 + BACKEND: 행성 추가 및 저장하기
+  const handleAddCategory = async (category) => {
     const trimmed = category.trim(); // 실수로 넣은 공백 제거
-    if (trimmed && !categories.includes(trimmed)) {
-      setCategories([...categories, trimmed]);
-    }
-  };
+    //프엔 단일일 경우
+    //if (trimmed && !categories.includes(trimmed)) {
+    //  setCategories([...categories, trimmed]);
+    //}
+    
+    if (!trimmed || categories.includes(trimmed)) return;
+    
+    //보낼 body 생성
+    const body = {category: trimmed};
+    if (clientId) {body.clientId = clientId;}
+    
+    //디버깅용
+    console.log("body:", body)
 
-  const handleAddTodo = (text, category) => {
-    const newTodo = {
-      id: Date.now().toString(),
-      text,
-      category,
-      completed: false,
+    try {
+    const res = await fetch("/api/planets", {  
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || "Failed to add category");
+    }
+
+    const saved = await res.json();
+    const normalized = {
+      id: saved._id || saved.id,
+      category: saved.category,
+      clientId: saved.clientId || null,
+      _raw: saved
     };
-    setTodos((prev) => [...prev, newTodo]);
 
-    // 카테고리가 없으면 추가
-    if (!categories.includes(category)) {
-      setCategories((prev) => [...prev, category]);
+    setCategories(prev => {
+      if (!prev.includes(normalized.category)) {
+        return [...prev, normalized.category];
+      }
+      return prev;
+    });
+    } 
+    
+    catch (error) {
+    console.error("ADD CATEGORY error:", error);
+    alert("Category를 추가할 수 없습니다. " + error.message);
     }
   };
 
-  const handleToggleTodo = (id) => {
+  //TODO 생성 + BACKEND: TODO 저장하기
+  const handleAddTodo = async (text, category) => {
+    //프엔에서 구동할 경우
+    //const newTodo = {
+    //  id: Date.now().toString(),
+    //  text,
+    //  category,
+    //  completed: false,
+    //};
+    //setTodos((prev) => [...prev, newTodo]);
+
+    //// 카테고리가 없으면 추가
+    //if (!categories.includes(category)) {
+    //  setCategories((prev) => [...prev, category]);
+    //}
+    //예외 제거
+    if (!text || !text.trim()) {
+    alert("TODO를 입력해 주세요!");
+    return;
+    }
+
+
+    //server에 연결하고 저장하기
+    try {
+      const body = { text: text.trim(), category };
+      body.clientId = clientId; 
+      //디버깅용
+      //console.log("body:", body);
+      
+      const res = await fetch("/api/todos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+    });
+
+    //디버깅용
+    //console.log("Stringified body:", JSON.stringify(body));
+
+
+    //ADD call 안됐을 때 예외 처리
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || "ADD TODO 실패");
+    }
+
+    const saved = await res.json();
+    //디버깅용
+    //console.log("category 확인:", saved.category);
+
+    // 서버 저장된 걸 프엔 형태로 바꾸기 (id field)
+    const normalized = {
+      id: saved._id || saved.id,
+      text: saved.text,
+      category: saved.category || "Uncategorized",
+      completed: saved.completed ?? false,
+      completedAt: saved.completedAt || null,
+      createdAt: saved.createdAt,
+      updatedAt: saved.updatedAt,
+      clientId: saved.clientId,
+      _raw: saved
+    };
+
+    //디버깅용
+    //console.log("Normalized body:", normalized);
+
+    setTodos(prev => [...prev, normalized]);
+
+    if (normalized.category && !categories.includes(normalized.category)) {
+      setCategories(prev => [...prev, normalized.category]);
+      }
+    } 
+    
+    catch (error) {
+    console.error("ADD TODO error:", error);
+    alert("TODO를 추가할 수 없습니다. " + error.message);
+    }
+  };
+  
+  //TODO 완료상태 변경 + BACKEND: TODO 완료 상태 변경
+  const handleToggleTodo = async (id) => {
+    //프엔 구동용
+    //setTodos((prev) =>
+    //  prev.map((todo) =>
+    //    todo.id === id ? { ...todo, completed: !todo.completed } : todo
+    //  )
+    //);
+    try {
+      // TODO 있는지 확인하기
+      const target = todos.find((t) => t.id === id);
+      if (!target) return;
+
+      const updatedCompleted = !target.completed;
+
+      // 벡엔드에 업데이트 하기
+      const res = await fetch(`/api/todos/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ completed: updatedCompleted,
+        completedAt: Date.now()
+       }),
+      });
+
+      const saved = await res.json();
+
+      // 백엔드 <> 프런트엔드 양식 맞추기
+      // 서버 저장된 걸 프엔 형태로 바꾸기 (id field)
+      const normalized = {
+      id: saved._id || saved.id,
+      text: saved.text,
+      category: saved.category || "Uncategorized",
+      completed: saved.completed ?? false,
+      completedAt: saved.completedAt || null,
+      createdAt: saved.createdAt,
+      updatedAt: saved.updatedAt,
+      clientId: saved.clientId,
+      _raw: saved
+      };
+    
+      setTodos((prev) =>
+        prev.map((todo) =>
+          todo.id === id ? { ...todo, completed: !todo.completed } : todo
+        )
+      );
+    } 
+    catch (error) {
+    console.error("TODO Toggle Failed", error);
+    alert("TODO의 완료 상태를 변경 할 수 없습니다 " + error.message);
+    }
+  };
+
+  //TODO 삭제하기 + BACKEND: TODO 삭제하기
+  const handleDeleteTodo = async (id) => {
+    //프엔 구동용
+    //setTodos((prev) => prev.filter((todo) => todo.id !== id));
+    try {
+    const res = await fetch(`/api/todos/${id}`, {
+      method: "DELETE",
+    });
+
+    if (!res.ok) {
+      throw new Error("Failed to delete todo");
+    }
+
+    setTodos((prev) => prev.filter((todo) => todo.id !== id && todo._id !== id));
+    } 
+    
+    catch (error) {
+    console.error("DELETE TODO error:", error);
+    alert("Todo를 삭제할 수 없습니다.");
+    }
+  };
+
+  //TODO 업데이트 하기 + BACKEND: TODO 업데이트하기
+  const handleUpdateTodo = async (id, newText) => {
+    //프엔구동용
+    //setTodos((prev) =>
+    //  prev.map((todo) => (todo.id === id ? { ...todo, text: newText } : todo))
+    //);
+    try {
+    const res = await fetch(`/api/todos/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: newText }),
+    });
+
+    if (!res.ok) {
+      throw new Error("Failed to update todo");
+    }
+
+    const updated = await res.json(); // the updated todo from backend
+
     setTodos((prev) =>
       prev.map((todo) =>
-        todo.id === id ? { ...todo, completed: !todo.completed } : todo
+        todo.id === id || todo._id === id ? updated : todo
       )
     );
-  };
-
-  const handleDeleteTodo = (id) => {
-    setTodos((prev) => prev.filter((todo) => todo.id !== id));
-  };
-
-  const handleUpdateTodo = (id, newText) => {
-    setTodos((prev) =>
-      prev.map((todo) => (todo.id === id ? { ...todo, text: newText } : todo))
-    );
+    } 
+    catch (error) {
+    console.error("UPDATE TODO error:", error);
+    alert("Todo를 수정할 수 없습니다.");
+    }
   };
 
   const handleMoveTodo = (todoId, targetCategory, targetIndex) => {
@@ -396,10 +671,55 @@ useEffect(() => {
     });
   };
 
+  //발사버튼 + BACKEND: 완료된 TODO 삭제 + 행성별로 완료된 TODO 저장
   const handleLaunch = async () => {
     const checkedTodos = todos.filter((todo) => todo.completed);
 
     if (checkedTodos.length === 0 || isLaunching) return;
+
+    //카테고리별로 완료된 TODO 묶기
+    const todosByCategory = checkedTodos.reduce((acc, todo) => {
+    if (!acc[todo.category]) acc[todo.category] = [];
+    acc[todo.category].push({
+      text: todo.text?.trim() || "내용 없음",
+      completedAt: new Date(),
+      });
+    return acc;
+    }, {});
+
+    //백엔드에 카테고리 별로 완료된 할 일 행성에 저장하기 
+    try {
+    //카테고리별로 완료된 TODO 행성에 저장 
+    await Promise.all(
+      Object.entries(todosByCategory).map(async ([category, tasks]) => {
+        // Log the request body
+        const body = JSON.stringify({ tasks });
+        console.log(`Sending to category "${category}":`, body);  
+        const planetId = categoryToPlanetId[category];
+        const res = await fetch(`/api/planets/${planetId}/completed`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tasks }),
+        });
+        if (!res.ok) {
+          throw new Error(`Failed to save completed tasks for category ${category}`);
+        }
+      })
+    );
+
+    //완료된 TODO 삭제하기
+    await Promise.all(
+      checkedTodos.map((todo) =>
+        fetch(`/api/todos/${todo.id}`, { method: "DELETE" })
+      )
+    );
+    } 
+
+    catch (err) 
+    {
+    console.error("Launch error:", err);
+    alert("Failed to launch TODOs to planet.", err.message);
+    }
 
     // 발사 시작 - 버튼 비활성화
     setIsLaunching(true);
@@ -491,7 +811,21 @@ useEffect(() => {
     });
   };
 
-  const handleDeletePlanet = (category) => {
+  //행성 삭제 + BACKEND: 행성 삭제하기
+  const handleDeletePlanet = async (category) => {
+    const planetId = categoryToPlanetId[category];
+    if (planetId) {
+    try {
+      const res = await fetch(`/api/planets/${planetId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete planet on server");
+      console.log(`Deleted planet ${category} (${planetId}) on server`);
+    } 
+    catch (err) {
+      console.error(err);
+      alert(`Failed to delete planet "${category}": ${err.message}`);
+      return; // stop local deletion if server failed
+    }
+    }
     // 카테고리 제거
     setCategories((prev) => prev.filter((cat) => cat !== category));
 
