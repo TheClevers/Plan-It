@@ -85,6 +85,19 @@ Ensure a solid #000000 (pure black) background.
 Absolutely no outlines, watermarks, alphabets, or any kind of language text/letters are allowed in the generated image.
 Avoid realistic facial features on creature/pet planets; use stylized, deformed features only.
 Do not generate in 3D style.
+
+Outlineless Cel Shading (no black or colored outlines whatsoever).
+
+Casual, vibrant style as seen in your reference images.
+
+NO realistic facial features (eyes, nose, mouth). Only stylized, deformed ears and tail.
+
+Solid \#000000 (pure black) background.
+
+NO watermarks.
+
+NO alphabet or any kind of language alphabets.
+
 `.trim();
 }
 
