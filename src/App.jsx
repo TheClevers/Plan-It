@@ -1,32 +1,26 @@
-import {
-  useState,
-  useEffect,
-  useRef,
-  useCallback,
-  useMemo,
-} from "react";
-import { useNavigate } from "react-router-dom";
-import TodoList from "./components/TodoList";
-import Planet from "./components/Planet";
-import PlanetModal from "./components/PlanetModal";
-import RocketAnimation from "./components/RocketAnimation";
-import LLMChat from "./components/LLMChat";
-import ImageGenerator from "./components/ImageGenerator";
-import ChevronRight from "./assets/svg/ChevronRight";
-import ChevronLeft from "./assets/svg/ChevronLeft";
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import TodoList from './components/TodoList';
+import Planet from './components/Planet';
+import PlanetModal from './components/PlanetModal';
+import RocketAnimation from './components/RocketAnimation';
+import LLMChat from './components/LLMChat';
+import ImageGenerator from './components/ImageGenerator';
+import ChevronRight from './assets/svg/ChevronRight';
+import ChevronLeft from './assets/svg/ChevronLeft';
 
 // 레퍼런스 이미지 8장
-import ref1 from "./assets/reference/planet_ref1.png";
-import ref2 from "./assets/reference/planet_ref2.png";
-import ref3 from "./assets/reference/planet_ref3.png";
-import ref4 from "./assets/reference/planet_ref4.png";
-import ref5 from "./assets/reference/planet_ref5.png";
-import ref6 from "./assets/reference/planet_ref6.png";
-import ref7 from "./assets/reference/planet_ref7.png";
-import ref8 from "./assets/reference/planet_ref8.png";
+import ref1 from './assets/reference/planet_ref1.png';
+import ref2 from './assets/reference/planet_ref2.png';
+import ref3 from './assets/reference/planet_ref3.png';
+import ref4 from './assets/reference/planet_ref4.png';
+import ref5 from './assets/reference/planet_ref5.png';
+import ref6 from './assets/reference/planet_ref6.png';
+import ref7 from './assets/reference/planet_ref7.png';
+import ref8 from './assets/reference/planet_ref8.png';
 
 // 👇 Gemini 이미지 생성 함수
-import { generateImage } from "./services/geminiImage";
+import { generateImage } from './services/geminiImage';
 
 // 태양 관련 상수
 const SUN_SIZE = 800; // 태양 이미지 크기(px)
@@ -82,62 +76,21 @@ The keyword is: "${category}".
 Arrange elements relevant to the keyword directly on the planet's surface to reflect the theme.
 Ensure a solid #000000 (pure black) background.
 
-Outlineless Cel Shading (no black or colored outlines whatsoever).
-
-Casual, vibrant style as seen in your reference images.
-
-NO realistic facial features (eyes, nose, mouth). Only stylized, deformed ears and tail.
-
-Solid #000000 (pure black) background.
-
-NO watermarks.
-
-NO alphabet or any kind of language alphabets.
+Absolutely no outlines, watermarks, alphabets, or any kind of language text/letters are allowed in the generated image.
+Avoid realistic facial features on creature/pet planets; use stylized, deformed features only.
+Do not generate in 3D style.
 `.trim();
-}
-
-function removeBlackBackgroundFromDataUrl(dataUrl, threshold = 10) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-
-      canvas.width = img.width;
-      canvas.height = img.height;
-
-      ctx.drawImage(img, 0, 0);
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const data = imageData.data;
-
-      for (let i = 0; i < data.length; i += 4) {
-        const r = data[i];
-        const g = data[i + 1];
-        const b = data[i + 2];
-        const a = data[i + 3];
-
-        if (a !== 0 && r < threshold && g < threshold && b < threshold) {
-          data[i + 3] = 0;
-        }
-      }
-
-      ctx.putImageData(imageData, 0, 0);
-      const newDataUrl = canvas.toDataURL("image/png");
-      resolve(newDataUrl);
-    };
-
-    img.onerror = (err) => reject(err);
-    img.src = dataUrl;
-  });
 }
 
 function App() {
   const navigate = useNavigate();
   const [todos, setTodos] = useState([]);
   const [completedTasks, setCompletedTasks] = useState([]);
-  const [categories, setCategories] = useState(["냥냥성", "청소별", "공부별"]);
+  const [categories, setCategories] = useState([
+    { name: '냥냥성', description: '' },
+    { name: '청소별', description: '' },
+    { name: '공부별', description: '' },
+  ]);
   const [selectedPlanetCategory, setSelectedPlanetCategory] = useState(null);
   const [clickedPlanetCategories, setClickedPlanetCategories] = useState(
     new Set()
@@ -148,7 +101,7 @@ function App() {
   const [planetImages, setPlanetImages] = useState({});
 
   const containerRef = useRef(null);
-  const prevCategoriesRef = useRef("");
+  const prevCategoriesRef = useRef('');
   const [sunCenter, setSunCenter] = useState({ x: 0, y: 0 });
   const [isTodoListOpen, setIsTodoListOpen] = useState(true);
   const [rocketAnimations, setRocketAnimations] = useState([]);
@@ -156,7 +109,7 @@ function App() {
   const [isLaunching, setIsLaunching] = useState(false);
 
   const handleLogout = () => {
-    navigate("/login");
+    navigate('/login');
   };
 
   const toggleTodoList = () => {
@@ -189,16 +142,16 @@ function App() {
   );
 
   async function urlToFile(url, filename) {
-  const res = await fetch(url);
-  const blob = await res.blob();
-  return new File([blob], filename, { type: blob.type });
-}
+    const res = await fetch(url);
+    const blob = await res.blob();
+    return new File([blob], filename, { type: blob.type });
+  }
 
   // 모든 카테고리 목록 (categories, todos, completedTasks에서 추출)
   const allCategories = useMemo(() => {
     return Array.from(
       new Set([
-        ...categories,
+        ...categories.map((c) => c.name), // 객체에서 이름만 추출
         ...todos.map((t) => t.category),
         ...completedTasks.map((t) => t.category),
       ])
@@ -219,7 +172,7 @@ function App() {
     if (!containerRef.current || allCategories.length === 0) return;
 
     // 카테고리 목록을 정렬하여 문자열로 변환하여 비교
-    const currentCategoriesString = [...allCategories].sort().join(",");
+    const currentCategoriesString = [...allCategories].sort().join(',');
 
     // 이전 카테고리와 동일하면 실행하지 않음 (무한 루프 방지)
     if (prevCategoriesRef.current === currentCategoriesString) {
@@ -311,49 +264,55 @@ function App() {
   }, [allCategories, getPlanetSize]);
 
   // Gemini 호출: 카테고리마다 행성 이미지 생성 (이미 생성된 건 다시 안 부름)
-useEffect(() => {
-  if (allCategories.length === 0) return;
+  useEffect(() => {
+    if (allCategories.length === 0) return;
 
-  const categoriesWithoutImage = allCategories.filter(
-    (cat) => !planetImages[cat]
-  );
+    const categoriesWithoutImage = allCategories.filter(
+      (cat) => !planetImages[cat]
+    );
 
-  if (categoriesWithoutImage.length === 0) return;
+    if (categoriesWithoutImage.length === 0) return;
 
-  categoriesWithoutImage.forEach(async (category) => {
-    try {
-      // URL 목록을 File[] 로 변환
-      const fileRefs = await Promise.all(
-        [ref1, ref2, ref3, ref4, ref5, ref6, ref7, ref8].map((url, idx) =>
-          urlToFile(url, `ref${idx + 1}.png`)
-        )
-      );
+    categoriesWithoutImage.forEach(async (category) => {
+      try {
+        // URL 목록을 File[] 로 변환
+        const fileRefs = await Promise.all(
+          [ref1, ref2, ref3, ref4, ref5, ref6, ref7, ref8].map((url, idx) =>
+            urlToFile(url, `ref${idx + 1}.png`)
+          )
+        );
 
-      // 프롬프트 생성
-      const prompt = buildPlanetPrompt(category);
+        // 프롬프트 생성
+        const prompt = buildPlanetPrompt(category);
 
-      // File[] 전달
-      const rawDataUrl = await generateImage(prompt, fileRefs);
+        // File[] 전달
+        const dataUrl = await generateImage(prompt, fileRefs);
 
-      // 🔥 배경 제거 후 결과 사용
-      if (rawDataUrl) {
-      const cleanedDataUrl = await removeBlackBackgroundFromDataUrl(rawDataUrl);
+        // 이미지 저장
+        if (dataUrl) {
+          setPlanetImages((prev) =>
+            prev[category] ? prev : { ...prev, [category]: dataUrl }
+          );
+        }
+      } catch (err) {
+        console.error('Gemini 행성 이미지 생성 실패:', category, err);
+      }
+    });
+  }, [allCategories, planetImages]);
 
-      setPlanetImages((prev) =>
-        prev[category] ? prev : { ...prev, [category]: cleanedDataUrl }
-      );
-    }
-    } catch (err) {
-      console.error("Gemini 행성 이미지 생성 실패:", category, err);
-    }
-  });
-}, [allCategories, planetImages]);
+  const handleAddCategory = (categoryObj) => {
+    // categoryObj는 { name: string, description?: string } 형태라고 가정
+    const trimmed = categoryObj.name.trim();
 
-
-  const handleAddCategory = (category) => {
-    const trimmed = category.trim(); // 실수로 넣은 공백 제거
-    if (trimmed && !categories.includes(trimmed)) {
-      setCategories([...categories, trimmed]);
+    // 객체의 name 프로퍼티와 비교
+    if (trimmed && !categories.some((c) => c.name === trimmed)) {
+      setCategories((prev) => [
+        ...prev,
+        {
+          name: trimmed,
+          description: categoryObj.description || '', // 설명이 없으면 빈 문자열
+        },
+      ]);
     }
   };
 
@@ -366,9 +325,12 @@ useEffect(() => {
     };
     setTodos((prev) => [...prev, newTodo]);
 
-    // 카테고리가 없으면 추가
-    if (!categories.includes(category)) {
-      setCategories((prev) => [...prev, category]);
+    // 카테고리가 존재하는지 객체의 name으로 확인
+    const categoryExists = categories.some((c) => c.name === category);
+
+    // 없으면 새 객체 형태로 추가
+    if (!categoryExists) {
+      setCategories((prev) => [...prev, { name: category, description: '' }]);
     }
   };
 
@@ -452,12 +414,12 @@ useEffect(() => {
     setIsLaunching(true);
 
     // 완료된 할 일들의 위치 가져오기
-    const todoElements = document.querySelectorAll("[data-todo-id]");
+    const todoElements = document.querySelectorAll('[data-todo-id]');
     const rockets = [];
 
     checkedTodos.forEach((todo) => {
       const todoElement = Array.from(todoElements).find(
-        (el) => el.getAttribute("data-todo-id") === todo.id
+        (el) => el.getAttribute('data-todo-id') === todo.id
       );
 
       if (todoElement && planetPositions[todo.category]) {
@@ -539,32 +501,34 @@ useEffect(() => {
   };
 
   const handleDeletePlanet = (category) => {
-    // 카테고리 제거
-    setCategories((prev) => prev.filter((cat) => cat !== category));
+    // category 매개변수는 삭제할 카테고리의 '이름(String)'입니다.
 
-    // 해당 카테고리의 할 일들 제거
+    // 객체의 name과 비교하여 필터링
+    setCategories((prev) => prev.filter((cat) => cat.name !== category));
+
+    // 해당 카테고리의 할 일들 제거 (기존 동일)
     setTodos((prev) => prev.filter((todo) => todo.category !== category));
 
-    // 해당 카테고리의 완료된 할 일들 제거
+    // 해당 카테고리의 완료된 할 일들 제거 (기존 동일)
     setCompletedTasks((prev) =>
       prev.filter((task) => task.category !== category)
     );
 
-    // 행성 위치 제거
+    // 행성 위치 제거 (기존 동일)
     setPlanetPositions((prev) => {
       const newPositions = { ...prev };
       delete newPositions[category];
       return newPositions;
     });
 
-    // 행성 이미지 제거
+    // 행성 이미지 제거 (기존 동일)
     setPlanetImages((prev) => {
       const copy = { ...prev };
       delete copy[category];
       return copy;
     });
 
-    // 모달 닫기
+    // 모달 닫기 (기존 동일)
     setClickedPlanetCategories((prev) => {
       const newSet = new Set(prev);
       newSet.delete(category);
@@ -573,16 +537,16 @@ useEffect(() => {
   };
 
   return (
-    <div className="w-full h-screen overflow-hidden relative">
+    <div className='w-full h-screen overflow-hidden relative'>
       {/* Logout 버튼 */}
       <button
         onClick={handleLogout}
-        className="
+        className='
         absolute top-5 right-5 z-50
         text-cyan-300 font-semibold tracking-wide
         transition
         hover:text-cyan-200 hover:shadow-[0_0_4px_rgb(34,211,238)]
-      "
+      '
       >
         Logout
       </button>
@@ -590,15 +554,15 @@ useEffect(() => {
       {/* 우주 공간 - 전체 너비 */}
       <div
         ref={containerRef}
-        className="w-full h-full space-background relative overflow-auto p-10"
-        style={{ minHeight: "100vh" }}
+        className='w-full h-full space-background relative overflow-auto p-10'
+        style={{ minHeight: '100vh' }}
       >
         {/* TodoList 토글 컨트롤 */}
-        <div className="absolute top-5 left-5 z-50">
+        <div className='absolute top-5 left-5 z-50'>
           <img
-            src="/favicon.png"
-            alt="todo list button"
-            className="w-12 h-12"
+            src='/favicon.png'
+            alt='todo list button'
+            className='w-12 h-12'
             draggable={false}
           />
         </div>
@@ -607,12 +571,12 @@ useEffect(() => {
         <div
           className={`absolute top-1/2 left-5 -translate-y-1/2 z-40 transition-all duration-300 flex items-center ${
             isTodoListOpen
-              ? "translate-x-0 opacity-100"
-              : "-translate-x-full opacity-0 pointer-events-none"
+              ? 'translate-x-0 opacity-100'
+              : '-translate-x-full opacity-0 pointer-events-none'
           }`}
         >
           {/* TodoList 카드 */}
-          <div className="w-[300px]">
+          <div className='w-[300px]'>
             <TodoList
               todos={todos}
               categories={allCategories}
@@ -631,9 +595,9 @@ useEffect(() => {
           {/* 접는 버튼 (왼쪽 화살표) - TodoList 오른쪽 */}
           <button
             onClick={toggleTodoList}
-            className="w-16 h-48 flex items-center justify-center text-white/60 hover:text-white/80 transition-all hover:scale-110 cursor-pointer"
+            className='w-16 h-48 flex items-center justify-center text-white/60 hover:text-white/80 transition-all hover:scale-110 cursor-pointer'
           >
-            <ChevronLeft className="w-full h-full" />
+            <ChevronLeft className='w-full h-full' />
           </button>
         </div>
 
@@ -641,23 +605,23 @@ useEffect(() => {
         <div
           className={`absolute top-1/2 left-5 -translate-y-1/2 z-40 transition-all duration-300 ${
             !isTodoListOpen
-              ? "translate-x-0 opacity-100"
-              : "-translate-x-full opacity-0 pointer-events-none"
+              ? 'translate-x-0 opacity-100'
+              : '-translate-x-full opacity-0 pointer-events-none'
           }`}
         >
           <button
             onClick={toggleTodoList}
-            className="w-16 h-48 flex items-center justify-center text-white/60 hover:text-white/80 transition-all hover:scale-110 cursor-pointer"
+            className='w-16 h-48 flex items-center justify-center text-white/60 hover:text-white/80 transition-all hover:scale-110 cursor-pointer'
           >
-            <ChevronRight className="w-full h-full" />
+            <ChevronRight className='w-full h-full' />
           </button>
         </div>
 
         {/* 태양 이미지 — 왼쪽 중앙, 화면 밖으로 나가게 */}
         <img
-          src="/src/assets/sun.png"
-          alt="sun"
-          className="absolute pointer-events-none z-0 sun-rotate"
+          src='/src/assets/sun.png'
+          alt='sun'
+          className='absolute pointer-events-none z-0 sun-rotate'
           style={{
             width: `${SUN_SIZE}px`,
             height: `${SUN_SIZE}px`,
@@ -673,21 +637,21 @@ useEffect(() => {
 
         {/* 행성들 & 궤도 */}
         <div
-          className="relative w-full h-full"
-          style={{ minHeight: "calc(100vh - 80px)" }}
+          className='relative w-full h-full'
+          style={{ minHeight: 'calc(100vh - 80px)' }}
         >
           {/* 궤도 원들 (각 반지름 당 한 번만) */}
           {uniqueRadii.map((radius) => (
             <div
               key={radius}
-              className="absolute rounded-full pointer-events-none"
+              className='absolute rounded-full pointer-events-none'
               style={{
                 width: `${radius * 2}px`,
                 height: `${radius * 2}px`,
                 left: `${sunCenter.x - radius}px`,
                 top: `${sunCenter.y - radius}px`,
-                border: "2px solid rgba(80, 180, 255, 0.6)",
-                boxShadow: "0 0 6px rgba(80, 180, 255, 0.5)",
+                border: '2px solid rgba(80, 180, 255, 0.6)',
+                boxShadow: '0 0 6px rgba(80, 180, 255, 0.5)',
                 zIndex: 1,
               }}
             />
@@ -703,11 +667,11 @@ useEffect(() => {
             return (
               <div
                 key={category}
-                className="absolute z-10"
+                className='absolute z-10'
                 style={{
                   left: `${position.x}px`,
                   top: `${position.y}px`,
-                  transform: "translate(-50%, -50%)",
+                  transform: 'translate(-50%, -50%)',
                 }}
               >
                 <Planet
@@ -735,10 +699,20 @@ useEffect(() => {
       {/* 행성 정보 모달들 */}
       {Array.from(clickedPlanetCategories).map((category) => {
         if (!planetPositions[category]) return null;
+
+        // 🔍 1. 현재 렌더링 중인 카테고리 이름(category)과 일치하는 객체를 찾습니다.
+        const targetCategoryObj = categories.find((c) => c.name === category);
+
+        // 🔍 2. 설명 추출 (없을 경우 빈 문자열 처리)
+        const description = targetCategoryObj
+          ? targetCategoryObj.description
+          : '';
+
         return (
           <PlanetModal
             key={category}
             category={category}
+            description={description}
             completedTasks={tasksByCategory[category] || []}
             planetPosition={planetPositions[category]}
             planetSize={getPlanetSize(category)}
