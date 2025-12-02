@@ -1,10 +1,4 @@
-import {
-  useState,
-  useEffect,
-  useRef,
-  useCallback,
-  useMemo,
-} from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import TodoList from "./components/TodoList";
 import Planet from "./components/Planet";
@@ -189,10 +183,10 @@ function App() {
   );
 
   async function urlToFile(url, filename) {
-  const res = await fetch(url);
-  const blob = await res.blob();
-  return new File([blob], filename, { type: blob.type });
-}
+    const res = await fetch(url);
+    const blob = await res.blob();
+    return new File([blob], filename, { type: blob.type });
+  }
 
   // 모든 카테고리 목록 (categories, todos, completedTasks에서 추출)
   const allCategories = useMemo(() => {
@@ -311,44 +305,45 @@ function App() {
   }, [allCategories, getPlanetSize]);
 
   // Gemini 호출: 카테고리마다 행성 이미지 생성 (이미 생성된 건 다시 안 부름)
-useEffect(() => {
-  if (allCategories.length === 0) return;
+  useEffect(() => {
+    if (allCategories.length === 0) return;
 
-  const categoriesWithoutImage = allCategories.filter(
-    (cat) => !planetImages[cat]
-  );
+    const categoriesWithoutImage = allCategories.filter(
+      (cat) => !planetImages[cat]
+    );
 
-  if (categoriesWithoutImage.length === 0) return;
+    if (categoriesWithoutImage.length === 0) return;
 
-  categoriesWithoutImage.forEach(async (category) => {
-    try {
-      // URL 목록을 File[] 로 변환
-      const fileRefs = await Promise.all(
-        [ref1, ref2, ref3, ref4, ref5, ref6, ref7, ref8].map((url, idx) =>
-          urlToFile(url, `ref${idx + 1}.png`)
-        )
-      );
+    categoriesWithoutImage.forEach(async (category) => {
+      try {
+        // URL 목록을 File[] 로 변환
+        const fileRefs = await Promise.all(
+          [ref1, ref2, ref3, ref4, ref5, ref6, ref7, ref8].map((url, idx) =>
+            urlToFile(url, `ref${idx + 1}.png`)
+          )
+        );
 
-      // 프롬프트 생성
-      const prompt = buildPlanetPrompt(category);
+        // // 프롬프트 생성
+        // const prompt = buildPlanetPrompt(category);
 
-      // File[] 전달
-      const rawDataUrl = await generateImage(prompt, fileRefs);
+        // // File[] 전달
+        // const rawDataUrl = await generateImage(prompt, fileRefs);
 
-      // 🔥 배경 제거 후 결과 사용
-      if (rawDataUrl) {
-      const cleanedDataUrl = await removeBlackBackgroundFromDataUrl(rawDataUrl);
+        // // 🔥 배경 제거 후 결과 사용
+        // if (rawDataUrl) {
+        //   const cleanedDataUrl = await removeBlackBackgroundFromDataUrl(
+        //     rawDataUrl
+        //   );
 
-      setPlanetImages((prev) =>
-        prev[category] ? prev : { ...prev, [category]: cleanedDataUrl }
-      );
-    }
-    } catch (err) {
-      console.error("Gemini 행성 이미지 생성 실패:", category, err);
-    }
-  });
-}, [allCategories, planetImages]);
-
+        //   setPlanetImages((prev) =>
+        //     prev[category] ? prev : { ...prev, [category]: cleanedDataUrl }
+        //   );
+        // }
+      } catch (err) {
+        console.error("Gemini 행성 이미지 생성 실패:", category, err);
+      }
+    });
+  }, [allCategories, planetImages]);
 
   const handleAddCategory = (category) => {
     const trimmed = category.trim(); // 실수로 넣은 공백 제거
