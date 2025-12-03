@@ -80,7 +80,7 @@ export default function RocketAnimation({
         height="40"
         viewBox="0 0 24 40"
         fill="none"
-        xmlns="http://www.w3.org/2000/svg"
+        xmlns="http:`//www.w3.org/2000/svg"
       >
         {/* 로켓 본체 */}
         <path
