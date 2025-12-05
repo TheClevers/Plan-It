@@ -190,11 +190,15 @@ export default function TodoList({
               {/* 카테고리 헤더 */}
               <div className='flex items-center gap-2 mb-2'>
                 <div
-                  className={`flex-1 bg-gradient-to-r from-[#16213e] to-[#1a1a2e] rounded-xl px-3 py-2 transition-all cursor-pointer hover:from-[#1a1a2e] hover:to-[#16213e] ${
-                    dragOverCategory === category && dragOverIndex === -1
-                      ? 'ring-2 ring-cyan-400 shadow-lg'
-                      : ''
-                  }`}
+                 className={`flex-1 bg-gradient-to-br from-cyan-500/80 to-blue-500/80 
+                  rounded-xl px-3 py-2 transition-all cursor-pointer
+                  hover:from-cyan-400/90 hover:to-blue-400/90
+                  ${
+                  dragOverCategory === category && dragOverIndex === -1
+                    ? 'ring-2 ring-cyan-200 shadow-lg'
+                    : ''
+                    }`}
+
                   style={{
                     boxShadow:
                       dragOverCategory === category && dragOverIndex === -1
@@ -216,8 +220,8 @@ export default function TodoList({
                   }}
                 >
                   <span
-                    className='text-cyan-200 font-medium'
-                    style={{ textShadow: '0 0 8px rgba(80, 200, 255, 0.4)' }}
+                    className='font-medium text-white'
+                    style={{ textShadow: '0 0 4px rgba(0, 0, 0, 0.5)' }}
                   >
                     {category}
                   </span>

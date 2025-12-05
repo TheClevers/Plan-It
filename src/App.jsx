@@ -82,6 +82,20 @@ Do not generate in 3D style.
 `.trim();
 }
 
+// 행성 상태 메시지 함수
+function getPlanetStatusMessage(data) {
+  if (!data || data.population === 0) return "🪐 행성을 키워보자!";
+  const now = new Date();
+  const hoursSinceLast = (now - new Date(data.lastActivityTime)) / 1000 / 60 / 60;
+
+  if (hoursSinceLast > 72) return "🚨 지금 행성 관리가 안되고 있어!";
+  if (data.population >= 10000) return "😵 너무 좁아!";
+  if (data.taskCountLast24h >= 5) return "🔥 최근에 엄청 활발하군요!";
+  if (data.avgTaskTime < 10) return "🌱 무럭무럭 자라는군!";
+  return "🛰️ 평온한 상태입니다.";
+}
+
+        
 function App() {
   const navigate = useNavigate();
   const [todos, setTodos] = useState([]);
@@ -157,6 +171,40 @@ function App() {
       ])
     ).filter(Boolean);
   }, [categories, todos, completedTasks]);
+
+  // 행성 별 메시지
+const planetStatusMap = useMemo(() => {
+  const now = new Date();
+
+  return allCategories.reduce((acc, category) => {
+    const tasks = completedTasks.filter((t) => t.category === category);
+
+    // ❌ 기존 코드 (메시지 제외됨)
+    // if (tasks.length === 0) return acc;
+
+    // ✅ tasks가 없더라도 기본 값으로 넣기
+    const sortedTasks = [...tasks].sort(
+      (a, b) => new Date(b.completedAt) - new Date(a.completedAt)
+    );
+    const lastActivityTime = sortedTasks[0]?.completedAt || null;
+    const taskCountLast24h = tasks.filter(
+      (t) => now - new Date(t.completedAt) < 24 * 60 * 60 * 1000
+    ).length;
+    const avgTaskTime = 15 + Math.floor(Math.random() * 10); // 예시: 랜덤 평균 시간
+
+    acc[category] = {
+      lastActivityTime,
+      lastUpgradeTime: "2025-09-01T00:00:00Z", // 임시 값
+      population: tasks.length * 3000, // 0일 수 있음
+      taskCountLast24h,
+      avgTaskTime,
+    };
+
+    return acc;
+  }, {});
+}, [allCategories, completedTasks]);
+
+
 
   // 궤도 반지름 목록 (중복 제거)
   const uniqueRadii = useMemo(() => {
@@ -658,35 +706,83 @@ function App() {
           ))}
 
           {/* 행성들 */}
-          {allCategories.map((category) => {
-            const position = planetPositions[category];
-            if (!position) return null;
+        {allCategories.map((category) => {
+          const position = planetPositions[category];
+          if (!position) return null;
 
-            const imageUrl = planetImages[category] || null;
+          const imageUrl = planetImages[category] || null;
+          const size = expandingPlanets.has(category)
+            ? getPlanetSize(category) * 1.2
+            : getPlanetSize(category);
 
-            return (
-              <div
-                key={category}
-                className='absolute z-10'
-                style={{
-                  left: `${position.x}px`,
-                  top: `${position.y}px`,
-                  transform: 'translate(-50%, -50%)',
-                }}
-              >
-                <Planet
-                  category={category}
-                  size={
-                    expandingPlanets.has(category)
-                      ? getPlanetSize(category) * 1.2
-                      : getPlanetSize(category)
-                  }
-                  imageUrl={imageUrl} // 🔹 Gemini가 만든 이미지 전달
-                  onClick={() => handlePlanetClick(category)}
-                />
-              </div>
-            );
-          })}
+          const isClicked = clickedPlanetCategories.has(category);
+          const planetData = planetStatusMap[category];
+          const message =
+            isClicked && planetData ? getPlanetStatusMessage(planetData) : null;
+
+          return (
+            <div
+              key={category}
+              className="absolute z-10"
+              style={{
+                left: `${position.x}px`,
+                top: `${position.y}px`,
+                transform: "translate(-50%, -50%)",
+              }}
+            >
+              <Planet
+                category={category}
+                size={size}
+                imageUrl={imageUrl}
+                onClick={() => handlePlanetClick(category)}
+              />
+
+              {/* 말풍선 */}
+              {isClicked && (
+<div
+  className="absolute z-50 text-black text-sm px-4 py-2 rounded shadow"
+  style={{
+    top: `-15px`,
+    left: "50%",
+    transform: "translate(-50%, -100%)",
+    backgroundColor: "white",
+    padding: "4px 8px",            // ⬅ 여백 최소화
+    borderRadius: "6px",
+    boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
+    whiteSpace: "nowrap",          
+    minWidth: "140px",
+    maxWidth: "240px",             // ✅ 말풍선 더 길게
+    textAlign: "center",
+    lineHeight: "1.4",
+    position: "absolute",
+  }}
+>
+  {message || "행성을 키워보자!"}
+
+  {/* 꼬리: 아래로 향하게 */}
+  <div
+    style={{
+      position: "absolute",
+      top: "100%",         // 말풍선 하단에 붙이기
+      left: "50%",
+      transform: "translateX(-50%)",
+      width: 0,
+      height: 0,
+      borderLeft: "8px solid transparent",
+      borderRight: "8px solid transparent",
+      borderTop: "8px solid white", // 아래로 향하는 꼬리
+    }}
+  />
+</div>
+)}
+
+
+            </div>
+          );
+        })}
+
+
+
         </div>
       </div>
 
