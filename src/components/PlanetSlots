@@ -1,0 +1,87 @@
+export const planetSlots = {
+  1: null,
+  2: null,
+  3: null,
+  4: null,
+  5: null,
+  6: null,
+  7: null,
+  8: null,
+  9: null,
+  10: null,
+  11: null,
+  12: null,
+  13: null,
+  14: null,
+  15: null,
+  16: null,
+  17: null,
+  18: null,
+};
+
+let listeners = [];
+
+/**
+ * React 컴포넌트가 리렌더되도록 등록하는 함수
+ * @param {Function} callback 
+ */
+export function subscribePlanetChange(callback) {
+  listeners.push(callback);
+
+  return () => {
+    listeners = listeners.filter((fn) => fn !== callback);
+  };
+}
+
+export function notifyPlanetPosInfoChanged() {
+  listeners.forEach((callback) => callback(planetSlots));
+}
+
+export function savePlanetToSlot(posId, planetPosInfo){
+  planetSlots[posId] = planetPosInfo
+  notifyPlanetPosInfoChanged();
+}
+
+export function changePlanetSlot(src, dest){
+    planetSlots[dest] = planetSlots[src]
+    planetSlots[src] = null
+    notifyPlanetPosInfoChanged();
+}
+
+export function resetPlanetPosWithId(posId){
+  planetSlots[posId] = null
+  notifyPlanetPosInfoChanged();
+}
+
+export function isPositionOccupied(id){
+  return (planetSlots[id] !== null)
+}
+
+export function findRandomEmptySlot() {
+  const emptySlots = [];
+
+  for (let i = 1; i <= 18; i++) {
+    if (planetSlots[i] === null) {
+      emptySlots.push(i);
+    }
+  }
+
+  if (emptySlots.length === 0) {
+    return -1; // 더 이상 비어있는 슬롯 없음
+  }
+
+  const randomIndex = Math.floor(Math.random() * emptySlots.length);
+  return emptySlots[randomIndex];
+}
+
+export function placePlanetRandomly(planetPosInfo) {
+  const emptySlot = findRandomEmptySlot();
+
+  if (emptySlot === -1) {
+    console.warn("⚠ 모든 행성 슬롯이 가득 찼습니다.");
+    return false;
+  }
+
+  savePlanetToSlot(emptySlot, planetPosInfo);
+  return emptySlot; // 몇 번 슬롯에 들어갔는지 반환
+}
