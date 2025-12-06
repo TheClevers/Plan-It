@@ -8,90 +8,36 @@ import LLMChat from "./components/LLMChat";
 import ImageGenerator from "./components/ImageGenerator";
 import ChevronRight from "./assets/svg/ChevronRight";
 import ChevronLeft from "./assets/svg/ChevronLeft";
+import {
+  planetSlots,
+  subscribePlanetChange,
+  savePlanetToSlot,
+  changePlanetSlot,
+  placePlanetRandomly,
+} from "./components/PlanetSlots";
 
 // 태양 관련 상수
 const SUN_SIZE = 800; // 태양 이미지 크기(px)
 const SUN_LEFT_OFFSET = (-SUN_SIZE * 3) / 4; // 화면 왼쪽 밖으로 3/4 나가게
 const SUN_BOTTOM_OFFSET = 40; // 아래에서 40px 위
 
-// 행성 관련 상수
-const PLANET_ORBIT_RADIUS_OPTION = [350, 500, 750, 1000, 1250, 1500];
-const PLANET_ORBIT_RADIUS = {
-  냥냥성: 500,
-  청소별: 750,
-  공부별: 1000,
-}; // 태양으로부터 거리
-const PLANET_EXIST_ANGLE = Math.PI / 12; // 행성이 태양으로부터 존재할 수 있는 각도 (-π/n ~ π/n)
+// 행성 크기 관련 상수
 const MAXIMUM_PLANET_SIZE = 150;
 const MINIMUM_PLANET_SIZE = 80;
 
-// 고정된 궤도 반지름 (최대 5개)
-const FIXED_ORBIT_RADII = [350, 500, 750, 1000, 1250];
+// 고정된 궤도 반지름 (항상 존재)
+const FIXED_ORBIT_RADII = [500, 750, 1000, 1250, 1500];
 
 // 각 궤도마다 고정된 각도 위치들 (라디안)
-// 각 궤도마다 다른 수의 위치를 가질 수 있음
 const FIXED_ANGLES_PER_ORBIT = {
-  350: [
-    0,
-    Math.PI / 4,
-    Math.PI / 2,
-    (3 * Math.PI) / 4,
-    Math.PI,
-    (5 * Math.PI) / 4,
-    (3 * Math.PI) / 2,
-    (7 * Math.PI) / 4,
-  ], // 8개
-  500: [
-    0,
-    Math.PI / 6,
-    Math.PI / 3,
-    Math.PI / 2,
-    (2 * Math.PI) / 3,
-    (5 * Math.PI) / 6,
-    Math.PI,
-    (7 * Math.PI) / 6,
-    (4 * Math.PI) / 3,
-    (3 * Math.PI) / 2,
-    (5 * Math.PI) / 3,
-    (11 * Math.PI) / 6,
-  ], // 12개
-  750: [
-    0,
-    Math.PI / 4,
-    Math.PI / 2,
-    (3 * Math.PI) / 4,
-    Math.PI,
-    (5 * Math.PI) / 4,
-    (3 * Math.PI) / 2,
-    (7 * Math.PI) / 4,
-  ], // 8개
-  1000: [
-    0,
-    Math.PI / 6,
-    Math.PI / 3,
-    Math.PI / 2,
-    (2 * Math.PI) / 3,
-    (5 * Math.PI) / 6,
-    Math.PI,
-    (7 * Math.PI) / 6,
-    (4 * Math.PI) / 3,
-    (3 * Math.PI) / 2,
-    (5 * Math.PI) / 3,
-    (11 * Math.PI) / 6,
-  ], // 12개
-  1250: [
-    0,
-    Math.PI / 4,
-    Math.PI / 2,
-    (3 * Math.PI) / 4,
-    Math.PI,
-    (5 * Math.PI) / 4,
-    (3 * Math.PI) / 2,
-    (7 * Math.PI) / 4,
-  ], // 8개
+  500: [-Math.PI / 6, 0, Math.PI / 6],
+  750: [-Math.PI / 8, -Math.PI / 24, Math.PI / 24, Math.PI / 8],
+  1000: [-Math.PI / 10, -Math.PI / 20, 0, Math.PI / 20, Math.PI / 10],
+  1250: [-Math.PI / 18, 0, Math.PI / 18],
+  1500: [-Math.PI / 18, 0, Math.PI / 18],
 };
 
-// 고정 위치들을 생성하는 함수
+// 고정 위치들을 생성하는 함수 (각 슬롯 index -> x,y,radius,angle)
 function getFixedPositions(sunCenterX, sunCenterY) {
   const positions = [];
   let positionIndex = 1;
@@ -106,96 +52,41 @@ function getFixedPositions(sunCenterX, sunCenterY) {
   return positions;
 }
 
-// 주어진 반지름과 각도에 가장 가까운 고정 위치를 찾는 함수
-// occupiedPositions: 이미 배치된 행성들의 위치 배열
-function findNearestFixedPosition(
-  targetRadius,
-  targetAngle,
-  sunCenterX,
-  sunCenterY,
-  occupiedPositions = []
-) {
-  const fixedPositions = getFixedPositions(sunCenterX, sunCenterY);
+// planetSlots + 태양 + 고정 위치를 기반으로 category별 planetPositions 계산
+function computePlanetPositions(slots, sunCenter, allCategories) {
+  if (!sunCenter.x || !sunCenter.y) return {};
 
-  // 사용 가능한 위치만 필터링 (이미 배치된 위치 제외)
-  const availablePositions = fixedPositions.filter((pos) => {
-    return !occupiedPositions.some(
-      (occupied) =>
-        Math.abs(occupied.x - pos.x) < 10 && Math.abs(occupied.y - pos.y) < 10
-    );
+  const fixedPositions = getFixedPositions(sunCenter.x, sunCenter.y);
+  const fixedByIndex = {};
+  fixedPositions.forEach((pos) => {
+    fixedByIndex[pos.index] = pos;
   });
 
-  // 사용 가능한 위치가 없으면 모든 위치에서 선택
-  const positionsToSearch =
-    availablePositions.length > 0 ? availablePositions : fixedPositions;
+  const positions = {};
 
-  let nearest = null;
-  let minDistance = Infinity;
+  for (let i = 1; i <= 18; i++) {
+    const info = slots[i];
+    if (!info || !info.name) continue;
 
-  positionsToSearch.forEach((pos) => {
-    // 각도 차이 계산 (0 ~ 2π 범위로 정규화)
-    let angleDiff = Math.abs(targetAngle - pos.angle);
-    if (angleDiff > Math.PI) {
-      angleDiff = 2 * Math.PI - angleDiff;
-    }
+    const category = info.name;
 
-    // 반지름 차이와 각도 차이를 모두 고려한 거리
-    const radiusDiff = Math.abs(targetRadius - pos.radius);
-    const distance = Math.sqrt(
-      radiusDiff * radiusDiff + angleDiff * angleDiff * pos.radius * pos.radius
-    );
+    // 현재 존재하는 카테고리만 그림
+    if (allCategories && !allCategories.includes(category)) continue;
 
-    if (distance < minDistance) {
-      minDistance = distance;
-      nearest = pos;
-    }
-  });
+    const pos = fixedByIndex[i];
+    if (!pos) continue;
 
-  return nearest;
-}
-
-function getWeightedRandomRadius() {
-  const weights = PLANET_ORBIT_RADIUS_OPTION.map((_, i) => i + 1);
-  const total = weights.reduce((a, b) => a + b, 0);
-  const random = Math.random() * total;
-
-  let sum = 0;
-  for (let i = 0; i < weights.length; i++) {
-    sum += weights[i];
-    if (random < sum) {
-      return PLANET_ORBIT_RADIUS_OPTION[i];
-    }
+    positions[category] = {
+      category,
+      x: pos.x,
+      y: pos.y,
+      radius: pos.radius,
+      angle: pos.angle,
+      slotIndex: i,
+    };
   }
-  // 혹시라도 못 뽑으면 마지막 값
-  return PLANET_ORBIT_RADIUS_OPTION[PLANET_ORBIT_RADIUS_OPTION.length - 1];
-}
 
-const getOrbitRadius = (category) => {
-  if (!(category in PLANET_ORBIT_RADIUS)) {
-    // 새로운 카테고리면 랜덤값으로 설정
-    PLANET_ORBIT_RADIUS[category] = getWeightedRandomRadius();
-  }
-  return PLANET_ORBIT_RADIUS[category];
-};
-
-function calDistance(r1, theta1, r2, theta2) {
-  return Math.sqrt(r1 * r1 + r2 * r2 - 2 * r1 * r2 * Math.cos(theta1 - theta2));
-}
-
-// 카테고리만 변수로 들어가는 행성 이미지 프롬프트
-function buildPlanetPrompt(category) {
-  return `
-Generate a 2D, outlineless, casual cel-shaded planet illustration with a vibrant style.
-The planet's theme is defined by a keyword (e.g., "Cleaning Planet", "Study Planet").
-The keyword is: "${category}".
-
-Arrange elements relevant to the keyword directly on the planet's surface to reflect the theme.
-Ensure a solid #000000 (pure black) background.
-
-Absolutely no outlines, watermarks, alphabets, or any kind of language text/letters are allowed in the generated image.
-Avoid realistic facial features on creature/pet planets; use stylized, deformed features only.
-Do not generate in 3D style.
-`.trim();
+  return positions;
 }
 
 // 행성 상태 메시지 함수
@@ -212,6 +103,10 @@ function getPlanetStatusMessage(data) {
   return "🛰️ 평온한 상태입니다.";
 }
 
+function oneMinusExp(x) {
+  return 1 - Math.exp(-x);
+}
+
 function App() {
   const navigate = useNavigate();
   const [todos, setTodos] = useState([]);
@@ -226,11 +121,14 @@ function App() {
   );
   const [planetPositions, setPlanetPositions] = useState({});
 
+  // 드래그 상태: { category, x, y, offsetX, offsetY }
+  const [dragging, setDragging] = useState(null);
+
   // 카테고리별 Gemini가 생성한 행성 이미지 URL
   const [planetImages, setPlanetImages] = useState({});
 
   const containerRef = useRef(null);
-  const prevCategoriesRef = useRef("");
+  const planetsLayerRef = useRef(null);
   const [sunCenter, setSunCenter] = useState({ x: 0, y: 0 });
   const [isTodoListOpen, setIsTodoListOpen] = useState(true);
   const [rocketAnimations, setRocketAnimations] = useState([]);
@@ -246,17 +144,17 @@ function App() {
   };
 
   // 카테고리별로 완료된 할 일들을 그룹화
-  const tasksByCategory = completedTasks.reduce((acc, task) => {
-    if (!acc[task.category]) {
-      acc[task.category] = [];
-    }
-    acc[task.category].push(task);
-    return acc;
-  }, {});
-
-  function oneMinusExp(x) {
-    return 1 - Math.exp(-x);
-  }
+  const tasksByCategory = useMemo(
+    () =>
+      completedTasks.reduce((acc, task) => {
+        if (!acc[task.category]) {
+          acc[task.category] = [];
+        }
+        acc[task.category].push(task);
+        return acc;
+      }, {}),
+    [completedTasks]
+  );
 
   // 카테고리별 행성 크기 계산 (완료된 할 일 개수에 비례)
   const getPlanetSize = useCallback(
@@ -270,34 +168,24 @@ function App() {
     [tasksByCategory]
   );
 
-  async function urlToFile(url, filename) {
-    const res = await fetch(url);
-    const blob = await res.blob();
-    return new File([blob], filename, { type: blob.type });
-  }
-
   // 모든 카테고리 목록 (categories, todos, completedTasks에서 추출)
   const allCategories = useMemo(() => {
     return Array.from(
       new Set([
-        ...categories.map((c) => c.name), // 객체에서 이름만 추출
+        ...categories.map((c) => c.name),
         ...todos.map((t) => t.category),
         ...completedTasks.map((t) => t.category),
       ])
     ).filter(Boolean);
   }, [categories, todos, completedTasks]);
 
-  // 행성 별 메시지
+  // 행성 별 메시지용 데이터
   const planetStatusMap = useMemo(() => {
     const now = new Date();
 
     return allCategories.reduce((acc, category) => {
       const tasks = completedTasks.filter((t) => t.category === category);
 
-      // ❌ 기존 코드 (메시지 제외됨)
-      // if (tasks.length === 0) return acc;
-
-      // ✅ tasks가 없더라도 기본 값으로 넣기
       const sortedTasks = [...tasks].sort(
         (a, b) => new Date(b.completedAt) - new Date(a.completedAt)
       );
@@ -305,16 +193,15 @@ function App() {
       const taskCountLast24h = tasks.filter(
         (t) => now - new Date(t.completedAt) < 24 * 60 * 60 * 1000
       ).length;
-      // 카테고리 이름 기반 결정적 값 생성 (0-9 범위)
       const categoryHash = category
         .split("")
-        .reduce((acc, char) => acc + char.charCodeAt(0), 0);
-      const avgTaskTime = 15 + (categoryHash % 10); // 예시: 카테고리별 고정 평균 시간
+        .reduce((acc2, char) => acc2 + char.charCodeAt(0), 0);
+      const avgTaskTime = 15 + (categoryHash % 10);
 
       acc[category] = {
         lastActivityTime,
-        lastUpgradeTime: "2025-09-01T00:00:00Z", // 임시 값
-        population: tasks.length * 3000, // 0일 수 있음
+        lastUpgradeTime: "2025-09-01T00:00:00Z",
+        population: tasks.length * 3000,
         taskCountLast24h,
         avgTaskTime,
       };
@@ -323,116 +210,200 @@ function App() {
     }, {});
   }, [allCategories, completedTasks]);
 
-  // 궤도 반지름 목록 (중복 제거)
-  const uniqueRadii = useMemo(() => {
-    const radiiSet = new Set();
-    allCategories.forEach((category) => {
-      radiiSet.add(getOrbitRadius(category));
-    });
-    return Array.from(radiiSet);
-  }, [allCategories]);
-
-  // 🌞 태양 기준으로 행성 위치 생성 (새 카테고리만 랜덤 각도 배치)
+  // 컨테이너 크기에 따라 태양 중심 좌표 계산
   useEffect(() => {
     if (!containerRef.current) return;
 
     const container = containerRef.current;
-    const width = container.clientWidth;
-    const height = container.clientHeight;
 
-    if (width <= 0 || height <= 0) return;
+    const updateSunCenter = () => {
+      const width = container.clientWidth;
+      const height = container.clientHeight;
 
-    // 태양의 left/top 계산
-    const sunLeft = SUN_LEFT_OFFSET;
-    const sunTop = height - SUN_SIZE - SUN_BOTTOM_OFFSET;
+      if (width <= 0 || height <= 0) return;
 
-    // 태양 중심 좌표
-    const sunCenterX = sunLeft + SUN_SIZE / 2;
-    const sunCenterY = sunTop + SUN_SIZE / 2;
+      const sunLeft = SUN_LEFT_OFFSET;
+      const sunTop = height - SUN_SIZE - SUN_BOTTOM_OFFSET;
+      const sunCenterX = sunLeft + SUN_SIZE / 2;
+      const sunCenterY = sunTop + SUN_SIZE / 2;
 
-    // 궤도/행성 렌더링에서 쓸 수 있도록 상태로 저장
-    setSunCenter({ x: sunCenterX, y: sunCenterY });
+      setSunCenter({ x: sunCenterX, y: sunCenterY });
+    };
 
-    if (allCategories.length === 0) return;
+    updateSunCenter();
+    window.addEventListener("resize", updateSunCenter);
 
-    // 카테고리 목록을 정렬하여 문자열로 변환하여 비교
-    const currentCategoriesString = [...allCategories].sort().join(",");
+    return () => {
+      window.removeEventListener("resize", updateSunCenter);
+    };
+  }, []);
 
-    // 이전 카테고리와 동일하면 실행하지 않음 (무한 루프 방지)
-    if (prevCategoriesRef.current === currentCategoriesString) {
-      return;
+  // 고정 슬롯 위치들 (sunCenter 기준으로 계산)
+  const fixedPositions = useMemo(() => {
+    if (!sunCenter.x || !sunCenter.y) return [];
+    return getFixedPositions(sunCenter.x, sunCenter.y);
+  }, [sunCenter]);
+
+  // 드래그 중일 때, 현재 드롭하면 들어갈 "가장 가까운 슬롯 index"
+  const nearestSlotIndex = useMemo(() => {
+    if (!dragging || !fixedPositions.length) return null;
+    const { x, y } = dragging;
+    let nearest = null;
+    let minDist = Infinity;
+
+    fixedPositions.forEach((pos) => {
+      const dx = pos.x - x;
+      const dy = pos.y - y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < minDist) {
+        minDist = dist;
+        nearest = pos.index;
+      }
+    });
+
+    return nearest;
+  }, [dragging, fixedPositions]);
+
+  // planetSlots를 이용해서 행성 위치 생성 + 슬롯 자동 배치
+  useEffect(() => {
+    if (!sunCenter.x || !sunCenter.y) return;
+
+    // 1) 이미 슬롯에 어떤 카테고리들이 들어있는지 수집
+    const categoriesWithSlot = new Set();
+    for (let i = 1; i <= 18; i++) {
+      const info = planetSlots[i];
+      if (info && info.name) {
+        categoriesWithSlot.add(info.name);
+      }
     }
 
-    // 현재 카테고리 목록 저장
-    prevCategoriesRef.current = currentCategoriesString;
+    // 2) 슬롯이 없는 카테고리는 자동으로 빈 슬롯에 배치
+    allCategories.forEach((category) => {
+      if (categoriesWithSlot.has(category)) return;
+      placePlanetRandomly({ name: category });
+      categoriesWithSlot.add(category);
+    });
 
-    setPlanetPositions((prev) => {
-      // 이미 위치가 있는 카테고리는 그대로 두고,
-      // 위치가 없는 새 카테고리만 랜덤으로 생성
-      const next = { ...prev };
+    // 3) 현재 planetSlots + sunCenter 기준으로 planetPositions 계산
+    const applyPositions = (slots) => {
+      const positions = computePlanetPositions(slots, sunCenter, allCategories);
+      setPlanetPositions(positions);
+    };
 
-      const newCategories = allCategories.filter((cat) => !next[cat]);
+    // 처음 한 번 현재 값으로 계산
+    applyPositions(planetSlots);
 
-      // 새 카테고리가 없으면 상태 업데이트하지 않음 (불필요한 리렌더링 방지)
-      if (newCategories.length === 0) {
-        return prev;
+    // 4) 슬롯 변경 구독 → 슬롯이 바뀔 때마다 위치를 다시 계산
+    const unsubscribe = subscribePlanetChange((slots) => {
+      applyPositions(slots);
+    });
+
+    return unsubscribe;
+  }, [allCategories, sunCenter]);
+
+  // 드래그 관련: 마우스 이동 / 업 전역 리스너
+  useEffect(() => {
+    if (!dragging) return;
+    if (!planetsLayerRef.current) return;
+
+    const handleMouseMove = (e) => {
+      const rect = planetsLayerRef.current.getBoundingClientRect();
+      const x = e.clientX - rect.left - dragging.offsetX;
+      const y = e.clientY - rect.top - dragging.offsetY;
+      setDragging((prev) =>
+        prev
+          ? {
+              ...prev,
+              x,
+              y,
+            }
+          : null
+      );
+    };
+
+    const handleMouseUp = () => {
+      if (!dragging) return;
+      if (!planetsLayerRef.current) {
+        setDragging(null);
+        return;
       }
 
-      // 이미 배치된 위치들 수집
-      const occupiedPositions = Object.values(next).map((pos) => ({
-        x: pos.x,
-        y: pos.y,
-      }));
+      const { category, x, y } = dragging;
 
-      newCategories.forEach((category) => {
-        const radius = getOrbitRadius(category);
-        // 랜덤 각도 (-PLANET_EXIST_ANGLE ~ +PLANET_EXIST_ANGLE)
-        const randomAngle =
-          Math.random() * (2 * PLANET_EXIST_ANGLE) - PLANET_EXIST_ANGLE;
+      // 드롭 위치에서 가장 가까운 고정 슬롯 찾기
+      const localFixedPositions = getFixedPositions(
+        sunCenter.x,
+        sunCenter.y
+      );
+      let nearestSlot = null;
+      let minDist = Infinity;
 
-        // 가장 가까운 고정 위치 찾기 (이미 배치된 위치 제외)
-        const nearestFixed = findNearestFixedPosition(
-          radius,
-          randomAngle,
-          sunCenterX,
-          sunCenterY,
-          occupiedPositions
-        );
-
-        if (nearestFixed) {
-          // 고정 위치에 배치
-          next[category] = {
-            category,
-            x: nearestFixed.x,
-            y: nearestFixed.y,
-            radius: nearestFixed.radius,
-            angle: nearestFixed.angle,
-          };
-          // 배치된 위치를 occupiedPositions에 추가 (다음 행성 배치 시 참고)
-          occupiedPositions.push({ x: nearestFixed.x, y: nearestFixed.y });
-        } else {
-          // 고정 위치를 찾지 못한 경우 (예외 처리)
-          const x = sunCenterX + Math.cos(randomAngle) * radius;
-          const y = sunCenterY + Math.sin(randomAngle) * radius;
-          next[category] = { category, x, y };
+      localFixedPositions.forEach((pos) => {
+        const dx = pos.x - x;
+        const dy = pos.y - y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < minDist) {
+          minDist = dist;
+          nearestSlot = pos.index;
         }
       });
 
-      return next;
+      if (nearestSlot != null) {
+        // src 슬롯 찾기
+        let srcSlot = null;
+        for (let i = 1; i <= 18; i++) {
+          if (planetSlots[i] && planetSlots[i].name === category) {
+            srcSlot = i;
+            break;
+          }
+        }
+
+        if (srcSlot != null && srcSlot !== nearestSlot) {
+          changePlanetSlot(srcSlot, nearestSlot);
+        }
+      }
+
+      setDragging(null);
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [dragging, sunCenter]);
+
+  const handlePlanetMouseDown = (e, category) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!planetsLayerRef.current) return;
+    const rect = planetsLayerRef.current.getBoundingClientRect();
+    const pos = planetPositions[category];
+    if (!pos) return;
+
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    setDragging({
+      category,
+      x: pos.x,
+      y: pos.y,
+      offsetX: mouseX - pos.x,
+      offsetY: mouseY - pos.y,
     });
-  }, [allCategories, getPlanetSize, sunCenter]);
+  };
 
   const handleAddCategory = (categoryObj) => {
-    // categoryObj는 { name: string, description?: string } 형태라고 가정
     const trimmed = categoryObj.name.trim();
 
-    // 객체의 name 프로퍼티와 비교
     if (trimmed && !categories.some((c) => c.name === trimmed)) {
       setCategories((prev) => [
         ...prev,
         {
           name: trimmed,
-          description: categoryObj.description || "", // 설명이 없으면 빈 문자열
+          description: categoryObj.description || "",
         },
       ]);
     }
@@ -447,10 +418,8 @@ function App() {
     };
     setTodos((prev) => [...prev, newTodo]);
 
-    // 카테고리가 존재하는지 객체의 name으로 확인
     const categoryExists = categories.some((c) => c.name === category);
 
-    // 없으면 새 객체 형태로 추가
     if (!categoryExists) {
       setCategories((prev) => [...prev, { name: category, description: "" }]);
     }
@@ -479,10 +448,8 @@ function App() {
       const todo = prev.find((t) => t.id === todoId);
       if (!todo) return prev;
 
-      // 기존 할 일 제거
       const filtered = prev.filter((t) => t.id !== todoId);
 
-      // 카테고리별로 그룹화하여 순서 유지
       const todosByCategory = filtered.reduce((acc, t) => {
         if (!acc[t.category]) {
           acc[t.category] = [];
@@ -493,23 +460,18 @@ function App() {
 
       const newTodo = { ...todo, category: targetCategory };
 
-      // targetIndex가 -1이면 맨 위에, 그 외에는 해당 인덱스에 삽입
       const insertIndex = targetIndex === -1 ? 0 : targetIndex;
 
-      // 타겟 카테고리의 할 일 목록 가져오기
       const targetCategoryTodos = todosByCategory[targetCategory] || [];
 
-      // 인덱스가 범위를 벗어나면 끝에 추가
       const finalIndex =
         insertIndex >= targetCategoryTodos.length
           ? targetCategoryTodos.length
           : insertIndex;
 
-      // 새 목록 생성
       const newTargetCategoryTodos = [...targetCategoryTodos];
       newTargetCategoryTodos.splice(finalIndex, 0, newTodo);
 
-      // 모든 카테고리의 할 일들을 순서대로 합치기
       const allCats = Array.from(
         new Set([...Object.keys(todosByCategory), targetCategory])
       );
@@ -532,10 +494,8 @@ function App() {
 
     if (checkedTodos.length === 0 || isLaunching) return;
 
-    // 발사 시작 - 버튼 비활성화
     setIsLaunching(true);
 
-    // 완료된 할 일들의 위치 가져오기
     const todoElements = document.querySelectorAll("[data-todo-id]");
     const rockets = [];
 
@@ -563,13 +523,10 @@ function App() {
       }
     });
 
-    // 로켓 애니메이션 시작
     setRocketAnimations(rockets);
 
-    // 각 로켓 애니메이션 완료 후 처리
     rockets.forEach((rocket) => {
       setTimeout(() => {
-        // 행성 크기 증가 애니메이션
         setExpandingPlanets((prev) => new Set(prev).add(rocket.category));
 
         setTimeout(() => {
@@ -580,12 +537,10 @@ function App() {
           });
         }, 500);
 
-        // 로켓 제거
         setRocketAnimations((prev) => prev.filter((r) => r.id !== rocket.id));
-      }, 1500); // 로켓 애니메이션 시간 (1.5초)
+      }, 1500);
     });
 
-    // 모든 로켓 애니메이션 완료 후 데이터 업데이트
     setTimeout(() => {
       const newCompletedTasks = checkedTodos.map((todo) => ({
         id: todo.id,
@@ -597,7 +552,6 @@ function App() {
       setCompletedTasks((prev) => [...prev, ...newCompletedTasks]);
       setTodos((prev) => prev.filter((todo) => !todo.completed));
 
-      // 발사 완료 - 버튼 활성화
       setIsLaunching(false);
     }, 2000);
   };
@@ -623,39 +577,33 @@ function App() {
   };
 
   const handleDeletePlanet = (category) => {
-    // category 매개변수는 삭제할 카테고리의 '이름(String)'입니다.
-
-    // 객체의 name과 비교하여 필터링
     setCategories((prev) => prev.filter((cat) => cat.name !== category));
 
-    // 해당 카테고리의 할 일들 제거 (기존 동일)
     setTodos((prev) => prev.filter((todo) => todo.category !== category));
 
-    // 해당 카테고리의 완료된 할 일들 제거 (기존 동일)
     setCompletedTasks((prev) =>
       prev.filter((task) => task.category !== category)
     );
 
-    // 행성 위치 제거 (기존 동일)
     setPlanetPositions((prev) => {
       const newPositions = { ...prev };
       delete newPositions[category];
       return newPositions;
     });
 
-    // 행성 이미지 제거 (기존 동일)
     setPlanetImages((prev) => {
       const copy = { ...prev };
       delete copy[category];
       return copy;
     });
 
-    // 모달 닫기 (기존 동일)
     setClickedPlanetCategories((prev) => {
       const newSet = new Set(prev);
       newSet.delete(category);
       return newSet;
     });
+
+    // 필요하면 planetSlots에서도 해당 카테고리 제거 로직 추가 가능
   };
 
   return (
@@ -759,11 +707,12 @@ function App() {
 
         {/* 행성들 & 궤도 */}
         <div
+          ref={planetsLayerRef}
           className="relative w-full h-full"
           style={{ minHeight: "calc(100vh - 80px)" }}
         >
-          {/* 궤도 원들 (각 반지름 당 한 번만) */}
-          {uniqueRadii.map((radius) => (
+          {/* 궤도 원들 */}
+          {FIXED_ORBIT_RADII.map((radius) => (
             <div
               key={radius}
               className="absolute rounded-full pointer-events-none"
@@ -779,16 +728,38 @@ function App() {
             />
           ))}
 
-          {/* 고정 위치 표시 (반투명한 원 + 번호) */}
+          {/* 슬롯 표시: 드래그 중일 때만 흰/초록/빨강 슬롯 이미지 표시 */}
           {sunCenter.x !== 0 &&
             sunCenter.y !== 0 &&
-            getFixedPositions(sunCenter.x, sunCenter.y).map((pos, index) => {
-              // 이미 행성이 배치된 위치인지 확인
-              const isOccupied = Object.values(planetPositions).some(
-                (planetPos) =>
-                  Math.abs(planetPos.x - pos.x) < 10 &&
-                  Math.abs(planetPos.y - pos.y) < 10
-              );
+            dragging &&
+            fixedPositions.map((pos, index) => {
+              const isNearest =
+                nearestSlotIndex != null && pos.index === nearestSlotIndex;
+
+              // 이 슬롯이 이미 점유된 상태인지 (planetSlots 기준)
+              const isOccupied = !!planetSlots[pos.index];
+
+              // 색/스타일 결정
+              let borderColor;
+              let bgColor;
+              let glow;
+
+              if (isOccupied) {
+                // 이미 행성이 있는 슬롯 → 빨강
+                borderColor = "3px solid rgba(255, 120, 120, 0.95)";
+                bgColor = "rgba(255, 80, 80, 0.35)";
+                glow = "0 0 18px rgba(255, 80, 80, 1)";
+              } else if (isNearest) {
+                // 가장 가까운 슬롯 (비어있는 경우) → 초록
+                borderColor = "3px solid rgba(100, 255, 100, 0.95)";
+                bgColor = "rgba(100, 255, 100, 0.35)";
+                glow = "0 0 18px rgba(100, 255, 150, 1)";
+              } else {
+                // 나머지 비어 있는 슬롯 → 흰색
+                borderColor = "3px solid rgba(255, 255, 255, 0.95)";
+                bgColor = "rgba(255, 255, 255, 0.35)";
+                glow = "0 0 15px rgba(255, 255, 255, 0.9)";
+              }
 
               return (
                 <div
@@ -801,7 +772,7 @@ function App() {
                     zIndex: 5,
                   }}
                 >
-                  {/* 반투명한 원 */}
+                  {/* 슬롯 원 */}
                   <div
                     className="absolute rounded-full"
                     style={{
@@ -810,15 +781,9 @@ function App() {
                       left: "50%",
                       top: "50%",
                       transform: "translate(-50%, -50%)",
-                      border: isOccupied
-                        ? "3px solid rgba(100, 200, 100, 0.9)"
-                        : "3px solid rgba(255, 255, 255, 0.9)",
-                      backgroundColor: isOccupied
-                        ? "rgba(100, 200, 100, 0.4)"
-                        : "rgba(255, 255, 255, 0.4)",
-                      boxShadow: isOccupied
-                        ? "0 0 15px rgba(100, 200, 100, 0.8)"
-                        : "0 0 15px rgba(255, 255, 255, 0.8)",
+                      border: borderColor,
+                      backgroundColor: bgColor,
+                      boxShadow: glow,
                     }}
                   />
                   {/* 번호 표시 */}
@@ -844,8 +809,14 @@ function App() {
 
           {/* 행성들 */}
           {allCategories.map((category) => {
-            const position = planetPositions[category];
-            if (!position) return null;
+            const basePos = planetPositions[category];
+            if (!basePos) return null;
+
+            const isDraggingThis =
+              dragging && dragging.category === category && dragging.x != null;
+
+            const x = isDraggingThis ? dragging.x : basePos.x;
+            const y = isDraggingThis ? dragging.y : basePos.y;
 
             const imageUrl = planetImages[category] || null;
             const size = expandingPlanets.has(category)
@@ -862,12 +833,13 @@ function App() {
             return (
               <div
                 key={category}
-                className="absolute z-10"
+                className="absolute z-10 cursor-grab active:cursor-grabbing"
                 style={{
-                  left: `${position.x}px`,
-                  top: `${position.y}px`,
+                  left: `${x}px`,
+                  top: `${y}px`,
                   transform: "translate(-50%, -50%)",
                 }}
+                onMouseDown={(e) => handlePlanetMouseDown(e, category)}
               >
                 <Planet
                   category={category}
@@ -885,31 +857,29 @@ function App() {
                       left: "50%",
                       transform: "translate(-50%, -100%)",
                       backgroundColor: "white",
-                      padding: "4px 8px", // ⬅ 여백 최소화
+                      padding: "4px 8px",
                       borderRadius: "6px",
                       boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
                       whiteSpace: "nowrap",
                       minWidth: "140px",
-                      maxWidth: "240px", // ✅ 말풍선 더 길게
+                      maxWidth: "240px",
                       textAlign: "center",
                       lineHeight: "1.4",
                       position: "absolute",
                     }}
                   >
                     {message || "행성을 키워보자!"}
-
-                    {/* 꼬리: 아래로 향하게 */}
                     <div
                       style={{
                         position: "absolute",
-                        top: "100%", // 말풍선 하단에 붙이기
+                        top: "100%",
                         left: "50%",
                         transform: "translateX(-50%)",
                         width: 0,
                         height: 0,
                         borderLeft: "8px solid transparent",
                         borderRight: "8px solid transparent",
-                        borderTop: "8px solid white", // 아래로 향하는 꼬리
+                        borderTop: "8px solid white",
                       }}
                     />
                   </div>
@@ -930,10 +900,7 @@ function App() {
       {Array.from(clickedPlanetCategories).map((category) => {
         if (!planetPositions[category]) return null;
 
-        // 🔍 1. 현재 렌더링 중인 카테고리 이름(category)과 일치하는 객체를 찾습니다.
         const targetCategoryObj = categories.find((c) => c.name === category);
-
-        // 🔍 2. 설명 추출 (없을 경우 빈 문자열 처리)
         const description = targetCategoryObj
           ? targetCategoryObj.description
           : "";
@@ -947,7 +914,6 @@ function App() {
             planetPosition={planetPositions[category]}
             planetSize={getPlanetSize(category)}
             onClose={() => handleCloseModal(category)}
-            onDelete={() => handleDeletePlanet(category)}
           />
         );
       })}
