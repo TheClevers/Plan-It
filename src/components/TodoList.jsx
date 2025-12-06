@@ -157,7 +157,7 @@ export default function TodoList({
     setIsPlanetModalOpen(false);
   };
 
-  const checkedCount = todos.filter((todo) => todo.completed).length;
+  const checkedCount = todos.filter((todo) => todo.checked).length;
 
   return (
     <div
@@ -359,7 +359,7 @@ export default function TodoList({
                       >
                         <input
                           type="checkbox"
-                          checked={todo.completed}
+                          checked={todo.checked}
                           onChange={() => onToggleTodo(todo.id)}
                           className="cursor-pointer"
                           onClick={(e) => e.stopPropagation()}
@@ -367,12 +367,12 @@ export default function TodoList({
                         />
                         <span
                           className={`text-cyan-100 flex-1 ${
-                            todo.completed
+                            todo.checked
                               ? "line-through opacity-40 text-cyan-500"
                               : ""
                           }`}
                           style={{
-                            textShadow: todo.completed
+                            textShadow: todo.checked
                               ? "none"
                               : "0 0 4px rgba(80, 200, 255, 0.3)",
                           }}

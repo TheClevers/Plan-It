@@ -8,6 +8,10 @@ import LLMChat from "./components/LLMChat";
 import ImageGenerator from "./components/ImageGenerator";
 import ChevronRight from "./assets/svg/ChevronRight";
 import ChevronLeft from "./assets/svg/ChevronLeft";
+import { getUsername } from "./services/auth";
+
+// API 기본 URL (환경 변수에서 가져오기)
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 // 태양 관련 상수
 const SUN_SIZE = 800; // 태양 이미지 크기(px)
@@ -87,11 +91,7 @@ function App() {
   const navigate = useNavigate();
   const [todos, setTodos] = useState([]);
   const [completedTasks, setCompletedTasks] = useState([]);
-  const [categories, setCategories] = useState([
-    { name: "냥냥성", description: "" },
-    { name: "청소별", description: "" },
-    { name: "공부별", description: "" },
-  ]);
+  const [categories, setCategories] = useState([]);
   const [clickedPlanetCategories, setClickedPlanetCategories] = useState(
     new Set()
   );
@@ -100,6 +100,9 @@ function App() {
   // 카테고리별 Gemini가 생성한 행성 이미지 URL
   const [planetImages, setPlanetImages] = useState({});
 
+  // 행성 정보 저장 (카테고리명을 키로 사용)
+  const [planetInfo, setPlanetInfo] = useState({});
+
   const containerRef = useRef(null);
   const prevCategoriesRef = useRef("");
   const [sunCenter, setSunCenter] = useState({ x: 0, y: 0 });
@@ -107,6 +110,185 @@ function App() {
   const [rocketAnimations, setRocketAnimations] = useState([]);
   const [expandingPlanets, setExpandingPlanets] = useState(new Set());
   const [isLaunching, setIsLaunching] = useState(false);
+
+  // 행성 목록 로드
+  useEffect(() => {
+    const loadPlanets = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/planets`);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch planets: ${response.status}`);
+        }
+        const planets = await response.json();
+        console.log("Loaded planets:", planets);
+
+        // 행성 데이터 처리
+        const newCategories = [];
+        const newCompletedTasks = [];
+        const newPlanetInfo = {};
+
+        planets.forEach((planet) => {
+          // 행성 이름 추출 (category 또는 name 필드 사용)
+          const planetName = planet.category || planet.name;
+          if (!planetName) return;
+
+          // 카테고리 추가
+          const introduction = planet.introduction || "";
+          newCategories.push({
+            name: planetName,
+            description: introduction,
+          });
+
+          // 행성 정보 저장
+          newPlanetInfo[planetName] = {
+            id: planet._id,
+            planetId: planet.planet_id,
+            name: planetName,
+            population: planet.population || 0,
+            majorIndustry: planet.major_industry || "NO INDUSTRY",
+            specifics: planet.specifics || "NO SPECIFICS",
+            introduction: introduction,
+            completedTodos: planet.completedTodos || planet.jobs_done || [],
+          };
+
+          // 완료된 할 일 추가
+          const completedTodos =
+            planet.completedTodos || planet.jobs_done || [];
+          completedTodos.forEach((todo) => {
+            // 두 가지 형식 지원
+            if (todo.text && todo.category) {
+              // 첫 번째 형식: { text, category, completedAt, _id }
+              newCompletedTasks.push({
+                id: todo._id || Date.now().toString(),
+                text: todo.text,
+                category:
+                  todo.category === "Uncategorized"
+                    ? planetName
+                    : todo.category,
+                completedAt: todo.completedAt || new Date(),
+              });
+            } else if (todo.todo_name) {
+              // 두 번째 형식: { todo_name, completed_at, user_id, _id }
+              newCompletedTasks.push({
+                id: todo._id || Date.now().toString(),
+                text: todo.todo_name,
+                category: planetName,
+                completedAt: todo.completed_at || new Date(),
+              });
+            }
+          });
+
+          // 이미지는 임시로 null 처리 (나중에 구현)
+          if (planet.image) {
+            setPlanetImages((prev) => ({
+              ...prev,
+              [planetName]: planet.image,
+            }));
+          }
+        });
+
+        // 상태 업데이트
+        setCategories((prev) => {
+          // 기존 카테고리와 병합 (중복 제거)
+          const existingNames = new Set(prev.map((c) => c.name));
+          const uniqueNewCategories = newCategories.filter(
+            (c) => !existingNames.has(c.name)
+          );
+          return [...prev, ...uniqueNewCategories];
+        });
+
+        setCompletedTasks((prev) => {
+          // 기존 완료된 할 일과 병합 (중복 제거)
+          const existingIds = new Set(prev.map((t) => t.id));
+          const uniqueNewTasks = newCompletedTasks.filter(
+            (t) => !existingIds.has(t.id)
+          );
+          return [...prev, ...uniqueNewTasks];
+        });
+
+        setPlanetInfo((prev) => ({
+          ...prev,
+          ...newPlanetInfo,
+        }));
+      } catch (error) {
+        console.error("Error loading planets:", error);
+      }
+    };
+
+    loadPlanets();
+  }, []);
+
+  // 할 일 목록 로드 (행성 정보 로드 후)
+  useEffect(() => {
+    const loadTodos = async () => {
+      // planetInfo가 비어있으면 대기
+      if (Object.keys(planetInfo).length === 0) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/todos`);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch todos: ${response.status}`);
+        }
+        const apiTodos = await response.json();
+        console.log("Loaded todos:", apiTodos);
+
+        // planet_id를 category 이름으로 변환하기 위한 맵 생성
+        const planetIdToCategoryMap = {};
+        Object.values(planetInfo).forEach((info) => {
+          if (info.planetId) {
+            planetIdToCategoryMap[info.planetId] = info.name;
+          }
+        });
+
+        // API 데이터를 로컬 상태 형식으로 변환
+        const localTodos = [];
+        const localCompletedTasks = [];
+
+        apiTodos.forEach((apiTodo) => {
+          const category =
+            planetIdToCategoryMap[apiTodo.planet_id] ||
+            (apiTodo.planet_id === "NONEPLANET" ? null : apiTodo.planet_id);
+
+          const todo = {
+            id: apiTodo.todo_id,
+            text: apiTodo.todo_name,
+            category: category || "Uncategorized",
+            completed: apiTodo.is_completed || false,
+            checked: false, // 체크 상태 (발사 전까지는 체크만)
+            todoId: apiTodo.todo_id, // API 호출용
+            planetId: apiTodo.planet_id,
+          };
+
+          if (apiTodo.is_completed) {
+            localCompletedTasks.push({
+              id: apiTodo.todo_id,
+              text: apiTodo.todo_name,
+              category: category || "Uncategorized",
+              completedAt: apiTodo.completed_at || new Date(),
+            });
+          } else {
+            localTodos.push(todo);
+          }
+        });
+
+        setTodos(localTodos);
+        setCompletedTasks((prev) => {
+          // 기존 완료된 할 일과 병합 (중복 제거)
+          const existingIds = new Set(prev.map((t) => t.id));
+          const uniqueNewTasks = localCompletedTasks.filter(
+            (t) => !existingIds.has(t.id)
+          );
+          return [...prev, ...uniqueNewTasks];
+        });
+      } catch (error) {
+        console.error("Error loading todos:", error);
+      }
+    };
+
+    loadTodos();
+  }, [planetInfo]);
 
   const handleLogout = () => {
     navigate("/login");
@@ -299,118 +481,376 @@ function App() {
     });
   }, [allCategories, getPlanetSize]);
 
-  const handleAddCategory = (categoryObj) => {
+  const handleAddCategory = async (categoryObj) => {
     // categoryObj는 { name: string, description?: string } 형태라고 가정
     const trimmed = categoryObj.name.trim();
 
-    // 객체의 name 프로퍼티와 비교
-    if (trimmed && !categories.some((c) => c.name === trimmed)) {
+    // 중복 체크
+    if (!trimmed || categories.some((c) => c.name === trimmed)) {
+      return;
+    }
+
+    // username 가져오기
+    const username = getUsername();
+    if (!username) {
+      console.error("Username not found. Please login again.");
+      return;
+    }
+
+    // API 호출로 행성 생성
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/planets`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          planet_id: `PLANET_${Date.now()}`, // 임시 ID 생성
+          name: trimmed,
+          image: null, // 이미지는 아직 미구현
+          introduction: categoryObj.description || null,
+          population: 0,
+          major_industry: "NO INDUSTRY",
+          specifics: "NO SPECIFICS",
+          username: username,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.error || `Failed to create planet: ${response.status}`
+        );
+      }
+
+      const newPlanet = await response.json();
+      console.log("Planet created successfully:", newPlanet);
+
+      // 성공 시 카테고리 추가
       setCategories((prev) => [
         ...prev,
         {
           name: trimmed,
-          description: categoryObj.description || "", // 설명이 없으면 빈 문자열
+          description: categoryObj.description || "",
         },
       ]);
+
+      // 행성 정보 저장
+      const planetName = newPlanet.category || newPlanet.name || trimmed;
+      setPlanetInfo((prev) => ({
+        ...prev,
+        [planetName]: {
+          id: newPlanet._id,
+          planetId: newPlanet.planet_id,
+          name: planetName,
+          population: newPlanet.population || 0,
+          majorIndustry: newPlanet.major_industry || "NO INDUSTRY",
+          specifics: newPlanet.specifics || "NO SPECIFICS",
+          introduction: newPlanet.introduction || categoryObj.description || "",
+          completedTodos: newPlanet.completedTodos || newPlanet.jobs_done || [],
+        },
+      }));
+    } catch (error) {
+      console.error("Error creating planet:", error);
+      // 에러 발생 시에도 UI에 추가하지 않음
     }
   };
 
-  const handleAddTodo = (text, category) => {
-    const newTodo = {
-      id: Date.now().toString(),
-      text,
-      category,
-      completed: false,
-    };
-    setTodos((prev) => [...prev, newTodo]);
+  const handleAddTodo = async (text, category) => {
+    // username 가져오기
+    const username = getUsername();
+    if (!username) {
+      console.error("Username not found. Please login again.");
+      return;
+    }
 
-    // 카테고리가 존재하는지 객체의 name으로 확인
-    const categoryExists = categories.some((c) => c.name === category);
+    // category에서 planet_id 찾기
+    const planetInfoForCategory = Object.values(planetInfo).find(
+      (info) => info.name === category
+    );
+    const planetId = planetInfoForCategory?.planetId || "NONEPLANET";
 
-    // 없으면 새 객체 형태로 추가
-    if (!categoryExists) {
-      setCategories((prev) => [...prev, { name: category, description: "" }]);
+    // API 호출로 할 일 생성
+    try {
+      const todoId = `TODO_${Date.now()}`;
+      const response = await fetch(`${API_BASE_URL}/api/todos`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          todo_id: todoId,
+          todo_name: text,
+          planet_id: planetId,
+          username: username,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.error || `Failed to create todo: ${response.status}`
+        );
+      }
+
+      const newTodo = await response.json();
+      console.log("Todo created successfully:", newTodo);
+
+      // 성공 시 로컬 상태에 추가
+      const localTodo = {
+        id: newTodo.todo_id,
+        text: newTodo.todo_name,
+        category: category,
+        completed: false,
+        checked: false, // 체크 상태 초기화
+        todoId: newTodo.todo_id,
+        planetId: newTodo.planet_id,
+      };
+      setTodos((prev) => [...prev, localTodo]);
+
+      // 카테고리가 존재하는지 객체의 name으로 확인
+      const categoryExists = categories.some((c) => c.name === category);
+
+      // 없으면 새 객체 형태로 추가
+      if (!categoryExists) {
+        setCategories((prev) => [...prev, { name: category, description: "" }]);
+      }
+    } catch (error) {
+      console.error("Error creating todo:", error);
     }
   };
 
   const handleToggleTodo = (id) => {
+    // 체크 상태만 토글 (API 호출 없음)
     setTodos((prev) =>
       prev.map((todo) =>
-        todo.id === id ? { ...todo, completed: !todo.completed } : todo
+        todo.id === id ? { ...todo, checked: !todo.checked } : todo
       )
     );
   };
 
-  const handleDeleteTodo = (id) => {
-    setTodos((prev) => prev.filter((todo) => todo.id !== id));
-  };
+  const handleDeleteTodo = async (id) => {
+    const todo = todos.find((t) => t.id === id);
+    if (!todo) return;
 
-  const handleUpdateTodo = (id, newText) => {
-    setTodos((prev) =>
-      prev.map((todo) => (todo.id === id ? { ...todo, text: newText } : todo))
-    );
-  };
-
-  const handleMoveTodo = (todoId, targetCategory, targetIndex) => {
-    setTodos((prev) => {
-      const todo = prev.find((t) => t.id === todoId);
-      if (!todo) return prev;
-
-      // 기존 할 일 제거
-      const filtered = prev.filter((t) => t.id !== todoId);
-
-      // 카테고리별로 그룹화하여 순서 유지
-      const todosByCategory = filtered.reduce((acc, t) => {
-        if (!acc[t.category]) {
-          acc[t.category] = [];
-        }
-        acc[t.category].push(t);
-        return acc;
-      }, {});
-
-      const newTodo = { ...todo, category: targetCategory };
-
-      // targetIndex가 -1이면 맨 위에, 그 외에는 해당 인덱스에 삽입
-      const insertIndex = targetIndex === -1 ? 0 : targetIndex;
-
-      // 타겟 카테고리의 할 일 목록 가져오기
-      const targetCategoryTodos = todosByCategory[targetCategory] || [];
-
-      // 인덱스가 범위를 벗어나면 끝에 추가
-      const finalIndex =
-        insertIndex >= targetCategoryTodos.length
-          ? targetCategoryTodos.length
-          : insertIndex;
-
-      // 새 목록 생성
-      const newTargetCategoryTodos = [...targetCategoryTodos];
-      newTargetCategoryTodos.splice(finalIndex, 0, newTodo);
-
-      // 모든 카테고리의 할 일들을 순서대로 합치기
-      const allCats = Array.from(
-        new Set([...Object.keys(todosByCategory), targetCategory])
-      );
-
-      const result = [];
-      allCats.forEach((cat) => {
-        if (cat === targetCategory) {
-          result.push(...newTargetCategoryTodos);
-        } else {
-          result.push(...(todosByCategory[cat] || []));
-        }
+    // API 호출로 할 일 삭제
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/todos/${todo.todoId}`, {
+        method: "DELETE",
       });
 
-      return result;
-    });
+      if (!response.ok) {
+        throw new Error(`Failed to delete todo: ${response.status}`);
+      }
+
+      console.log("Todo deleted successfully");
+    } catch (error) {
+      console.error("Error deleting todo:", error);
+    }
+
+    // 로컬 상태에서 제거
+    setTodos((prev) => prev.filter((t) => t.id !== id));
+    setCompletedTasks((prev) => prev.filter((t) => t.id !== id));
+  };
+
+  const handleUpdateTodo = async (id, newText) => {
+    const todo = todos.find((t) => t.id === id);
+    if (!todo) return;
+
+    // API 호출로 할 일 이름 업데이트
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/todos/${todo.todoId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          todo_name: newText,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to update todo: ${response.status}`);
+      }
+
+      const updatedTodo = await response.json();
+      console.log("Todo updated successfully:", updatedTodo);
+
+      // 성공 시 로컬 상태 업데이트
+      setTodos((prev) =>
+        prev.map((t) => (t.id === id ? { ...t, text: newText } : t))
+      );
+    } catch (error) {
+      console.error("Error updating todo:", error);
+      // 에러 발생 시에도 UI 업데이트 (낙관적 업데이트)
+      setTodos((prev) =>
+        prev.map((t) => (t.id === id ? { ...t, text: newText } : t))
+      );
+    }
+  };
+
+  const handleMoveTodo = async (todoId, targetCategory, targetIndex) => {
+    const todo = todos.find((t) => t.id === todoId);
+    if (!todo) return;
+
+    // targetCategory에서 planet_id 찾기
+    const planetInfoForCategory = Object.values(planetInfo).find(
+      (info) => info.name === targetCategory
+    );
+    const targetPlanetId = planetInfoForCategory?.planetId || "NONEPLANET";
+
+    // API 호출로 할 일 위치 업데이트
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/todos/${todo.todoId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          planet_id: targetPlanetId,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to update todo: ${response.status}`);
+      }
+
+      const updatedTodo = await response.json();
+      console.log("Todo moved successfully:", updatedTodo);
+
+      // 성공 시 로컬 상태 업데이트
+      setTodos((prev) => {
+        const foundTodo = prev.find((t) => t.id === todoId);
+        if (!foundTodo) return prev;
+
+        // 기존 할 일 제거
+        const filtered = prev.filter((t) => t.id !== todoId);
+
+        // 카테고리별로 그룹화하여 순서 유지
+        const todosByCategory = filtered.reduce((acc, t) => {
+          if (!acc[t.category]) {
+            acc[t.category] = [];
+          }
+          acc[t.category].push(t);
+          return acc;
+        }, {});
+
+        const newTodo = { ...foundTodo, category: targetCategory };
+
+        // targetIndex가 -1이면 맨 위에, 그 외에는 해당 인덱스에 삽입
+        const insertIndex = targetIndex === -1 ? 0 : targetIndex;
+
+        // 타겟 카테고리의 할 일 목록 가져오기
+        const targetCategoryTodos = todosByCategory[targetCategory] || [];
+
+        // 인덱스가 범위를 벗어나면 끝에 추가
+        const finalIndex =
+          insertIndex >= targetCategoryTodos.length
+            ? targetCategoryTodos.length
+            : insertIndex;
+
+        // 새 목록 생성
+        const newTargetCategoryTodos = [...targetCategoryTodos];
+        newTargetCategoryTodos.splice(finalIndex, 0, newTodo);
+
+        // 모든 카테고리의 할 일들을 순서대로 합치기
+        const allCats = Array.from(
+          new Set([...Object.keys(todosByCategory), targetCategory])
+        );
+
+        const result = [];
+        allCats.forEach((cat) => {
+          if (cat === targetCategory) {
+            result.push(...newTargetCategoryTodos);
+          } else {
+            result.push(...(todosByCategory[cat] || []));
+          }
+        });
+
+        return result;
+      });
+    } catch (error) {
+      console.error("Error moving todo:", error);
+      // 에러 발생 시에도 UI 업데이트 (낙관적 업데이트)
+      setTodos((prev) => {
+        const foundTodo = prev.find((t) => t.id === todoId);
+        if (!foundTodo) return prev;
+
+        const filtered = prev.filter((t) => t.id !== todoId);
+        const todosByCategory = filtered.reduce((acc, t) => {
+          if (!acc[t.category]) {
+            acc[t.category] = [];
+          }
+          acc[t.category].push(t);
+          return acc;
+        }, {});
+
+        const newTodo = { ...foundTodo, category: targetCategory };
+        const insertIndex = targetIndex === -1 ? 0 : targetIndex;
+        const targetCategoryTodos = todosByCategory[targetCategory] || [];
+        const finalIndex =
+          insertIndex >= targetCategoryTodos.length
+            ? targetCategoryTodos.length
+            : insertIndex;
+
+        const newTargetCategoryTodos = [...targetCategoryTodos];
+        newTargetCategoryTodos.splice(finalIndex, 0, newTodo);
+
+        const allCats = Array.from(
+          new Set([...Object.keys(todosByCategory), targetCategory])
+        );
+
+        const result = [];
+        allCats.forEach((cat) => {
+          if (cat === targetCategory) {
+            result.push(...newTargetCategoryTodos);
+          } else {
+            result.push(...(todosByCategory[cat] || []));
+          }
+        });
+
+        return result;
+      });
+    }
   };
 
   const handleLaunch = async () => {
-    const checkedTodos = todos.filter((todo) => todo.completed);
+    const checkedTodos = todos.filter((todo) => todo.checked);
 
     if (checkedTodos.length === 0 || isLaunching) return;
 
     // 발사 시작 - 버튼 비활성화
     setIsLaunching(true);
+
+    // 체크된 할 일들을 API로 완료 처리
+    const updatePromises = checkedTodos.map(async (todo) => {
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}/api/todos/${todo.todoId}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              is_completed: true,
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`Failed to update todo: ${response.status}`);
+        }
+
+        return await response.json();
+      } catch (error) {
+        console.error(`Error updating todo ${todo.id}:`, error);
+        return null;
+      }
+    });
+
+    // 모든 API 호출 완료 대기
+    await Promise.all(updatePromises);
 
     // 완료된 할 일들의 위치 가져오기
     const todoElements = document.querySelectorAll("[data-todo-id]");
@@ -472,7 +912,8 @@ function App() {
       }));
 
       setCompletedTasks((prev) => [...prev, ...newCompletedTasks]);
-      setTodos((prev) => prev.filter((todo) => !todo.completed));
+      // 체크된 할 일들을 제거하고, 체크되지 않은 할 일들만 남김
+      setTodos((prev) => prev.filter((todo) => !todo.checked));
 
       // 발사 완료 - 버튼 활성화
       setIsLaunching(false);
@@ -499,8 +940,32 @@ function App() {
     });
   };
 
-  const handleDeletePlanet = (category) => {
+  const handleDeletePlanet = async (category) => {
     // category 매개변수는 삭제할 카테고리의 '이름(String)'입니다.
+    const info = planetInfo[category];
+    const planetId = info?.planetId;
+
+    // API 호출로 행성 삭제
+    if (planetId) {
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}/api/planets/${planetId}`,
+          {
+            method: "DELETE",
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`Failed to delete planet: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log("Planet deleted successfully:", result);
+      } catch (error) {
+        console.error("Error deleting planet:", error);
+        // 에러가 발생해도 UI에서는 제거 (낙관적 업데이트)
+      }
+    }
 
     // 객체의 name과 비교하여 필터링
     setCategories((prev) => prev.filter((cat) => cat.name !== category));
@@ -522,6 +987,13 @@ function App() {
 
     // 행성 이미지 제거 (기존 동일)
     setPlanetImages((prev) => {
+      const copy = { ...prev };
+      delete copy[category];
+      return copy;
+    });
+
+    // 행성 정보 제거
+    setPlanetInfo((prev) => {
       const copy = { ...prev };
       delete copy[category];
       return copy;
@@ -752,6 +1224,8 @@ function App() {
           ? targetCategoryObj.description
           : "";
 
+        const info = planetInfo[category];
+
         return (
           <PlanetModal
             key={category}
@@ -762,6 +1236,7 @@ function App() {
             planetSize={getPlanetSize(category)}
             onClose={() => handleCloseModal(category)}
             onDelete={() => handleDeletePlanet(category)}
+            planetInfo={info}
           />
         );
       })}
