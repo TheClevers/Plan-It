@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import Calendar from '../assets/svg/Calendar';
-import { NewPlanetModal } from './NewPlanetModal';
+import { useState } from "react";
+import Calendar from "../assets/svg/Calendar";
+import { NewPlanetModal } from "./NewPlanetModal";
 
 export default function TodoList({
   todos,
@@ -17,23 +17,23 @@ export default function TodoList({
 }) {
   const [newTodoTexts, setNewTodoTexts] = useState({});
   //const [isAddingCategory, setIsAddingCategory] = useState(false);
-  const [newCategoryName, setNewCategoryName] = useState('');
+  const [newCategoryName, setNewCategoryName] = useState("");
   const [showInputForCategory, setShowInputForCategory] = useState({});
   const [draggedTodo, setDraggedTodo] = useState(null);
   const [dragOverCategory, setDragOverCategory] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
   const [hoveredTodoId, setHoveredTodoId] = useState(null);
   const [editingTodoId, setEditingTodoId] = useState(null);
-  const [editingText, setEditingText] = useState('');
+  const [editingText, setEditingText] = useState("");
   const [isPlanetModalOpen, setIsPlanetModalOpen] = useState(false);
-  const [newCategoryDescription, setNewCategoryDescription] = useState('');
+  const [newCategoryDescription, setNewCategoryDescription] = useState("");
 
   // 날짜 포맷팅 함수
   const getDateString = () => {
     const today = new Date();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const date = String(today.getDate()).padStart(2, '0');
-    const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const date = String(today.getDate()).padStart(2, "0");
+    const dayNames = ["일", "월", "화", "수", "목", "금", "토"];
     const dayName = dayNames[today.getDay()];
     return `${month}.${date} (${dayName}) 일지`;
   };
@@ -48,10 +48,10 @@ export default function TodoList({
   }, {});
 
   const handleAddTodo = (category) => {
-    const text = newTodoTexts[category] || '';
+    const text = newTodoTexts[category] || "";
     if (text.trim()) {
       onAddTodo(text, category);
-      setNewTodoTexts({ ...newTodoTexts, [category]: '' });
+      setNewTodoTexts({ ...newTodoTexts, [category]: "" });
       setShowInputForCategory({ ...showInputForCategory, [category]: false });
     }
   };
@@ -72,14 +72,14 @@ export default function TodoList({
 
   const handleDragStart = (e, todo) => {
     setDraggedTodo(todo);
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/html', todo.id);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/html", todo.id);
   };
 
   const handleDragOver = (e, category, index) => {
     e.preventDefault();
     e.stopPropagation();
-    e.dataTransfer.dropEffect = 'move';
+    e.dataTransfer.dropEffect = "move";
     setDragOverCategory(category);
     setDragOverIndex(index);
   };
@@ -130,12 +130,12 @@ export default function TodoList({
       onUpdateTodo(todoId, editingText.trim());
     }
     setEditingTodoId(null);
-    setEditingText('');
+    setEditingText("");
   };
 
   const handleCancelEdit = () => {
     setEditingTodoId(null);
-    setEditingText('');
+    setEditingText("");
   };
 
   const handleDeleteTodo = (todoId) => {
@@ -152,8 +152,8 @@ export default function TodoList({
       description: newCategoryDescription.trim(),
     });
 
-    setNewCategoryName('');
-    setNewCategoryDescription('');
+    setNewCategoryName("");
+    setNewCategoryDescription("");
     setIsPlanetModalOpen(false);
   };
 
@@ -161,50 +161,49 @@ export default function TodoList({
 
   return (
     <div
-      className='max-h-[calc(100vh-40px)] bg-gradient-to-br from-[#0a0a1a] via-[#1a1a2e] to-[#16213e] p-5 flex flex-col overflow-y-auto rounded-2xl shadow-2xl backdrop-blur-sm border border-cyan-500/20'
+      className="max-h-[calc(100vh-40px)] bg-gradient-to-br from-[#0a0a1a] via-[#1a1a2e] to-[#16213e] p-5 flex flex-col overflow-y-auto rounded-2xl shadow-2xl backdrop-blur-sm border border-cyan-500/20"
       style={{
         boxShadow:
-          '0 0 40px rgba(80, 200, 255, 0.1), inset 0 0 60px rgba(80, 200, 255, 0.05)',
+          "0 0 40px rgba(80, 200, 255, 0.1), inset 0 0 60px rgba(80, 200, 255, 0.05)",
       }}
     >
       {/* 헤더 */}
-      <div className='flex items-center justify-between mb-4 pb-3 border-b border-cyan-500/30'>
+      <div className="flex items-center justify-between mb-4 pb-3 border-b border-cyan-500/30">
         <h2
-          className='text-cyan-300 text-sm font-semibold tracking-wide'
-          style={{ textShadow: '0 0 10px rgba(80, 200, 255, 0.5)' }}
+          className="text-cyan-300 text-sm font-semibold tracking-wide"
+          style={{ textShadow: "0 0 10px rgba(80, 200, 255, 0.5)" }}
         >
           {getDateString()}
         </h2>
         <Calendar
-          className='w-5 h-5 text-cyan-400'
-          style={{ filter: 'drop-shadow(0 0 4px rgba(80, 200, 255, 0.6))' }}
+          className="w-5 h-5 text-cyan-400"
+          style={{ filter: "drop-shadow(0 0 4px rgba(80, 200, 255, 0.6))" }}
         />
       </div>
 
-      <div className='flex-1 overflow-y-auto mb-5 space-y-4'>
+      <div className="flex-1 overflow-y-auto mb-5 space-y-4">
         {categories.map((cat) => {
           const category = cat;
 
           return (
-            <div key={category} className='mb-4'>
+            <div key={category} className="mb-4">
               {/* 카테고리 헤더 */}
-              <div className='flex items-center gap-2 mb-2'>
+              <div className="flex items-center gap-2 mb-2">
                 <div
-                 className={`flex-1 bg-gradient-to-br from-cyan-500/80 to-blue-500/80 
+                  className={`flex-1 bg-gradient-to-br from-cyan-500/80 to-blue-500/80 
                   rounded-xl px-3 py-2 transition-all cursor-pointer
                   hover:from-cyan-400/90 hover:to-blue-400/90
                   ${
-                  dragOverCategory === category && dragOverIndex === -1
-                    ? 'ring-2 ring-cyan-200 shadow-lg'
-                    : ''
-                    }`}
-
+                    dragOverCategory === category && dragOverIndex === -1
+                      ? "ring-2 ring-cyan-200 shadow-lg"
+                      : ""
+                  }`}
                   style={{
                     boxShadow:
                       dragOverCategory === category && dragOverIndex === -1
-                        ? '0 0 20px rgba(80, 200, 255, 0.4)'
-                        : '0 2px 8px rgba(0, 0, 0, 0.3)',
-                    border: '1px solid rgba(80, 200, 255, 0.1)',
+                        ? "0 0 20px rgba(80, 200, 255, 0.4)"
+                        : "0 2px 8px rgba(0, 0, 0, 0.3)",
+                    border: "1px solid rgba(80, 200, 255, 0.1)",
                   }}
                   onDragOver={(e) => {
                     e.preventDefault();
@@ -220,27 +219,27 @@ export default function TodoList({
                   }}
                 >
                   <span
-                    className='font-medium text-white'
-                    style={{ textShadow: '0 0 4px rgba(0, 0, 0, 0.5)' }}
+                    className="font-medium text-white"
+                    style={{ textShadow: "0 0 4px rgba(0, 0, 0, 0.5)" }}
                   >
                     {category}
                   </span>
                 </div>
                 <button
                   onClick={() => handleToggleInput(category)}
-                  className='w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-full flex items-center justify-center text-white text-lg hover:from-cyan-400 hover:to-blue-400 transition-all'
+                  className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-full flex items-center justify-center text-white text-lg hover:from-cyan-400 hover:to-blue-400 transition-all"
                   style={{
-                    boxShadow: '0 0 8px rgba(80, 200, 255, 0.4)',
+                    boxShadow: "0 0 8px rgba(80, 200, 255, 0.4)",
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.boxShadow =
-                      '0 0 12px rgba(80, 200, 255, 0.6)';
-                    e.currentTarget.style.transform = 'scale(1.05)';
+                      "0 0 12px rgba(80, 200, 255, 0.6)";
+                    e.currentTarget.style.transform = "scale(1.05)";
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.boxShadow =
-                      '0 0 8px rgba(80, 200, 255, 0.4)';
-                    e.currentTarget.style.transform = 'scale(1)';
+                      "0 0 8px rgba(80, 200, 255, 0.4)";
+                    e.currentTarget.style.transform = "scale(1)";
                   }}
                 >
                   +
@@ -249,7 +248,7 @@ export default function TodoList({
 
               {/* 해당 카테고리의 할 일 목록 */}
               <div
-                className='space-y-2'
+                className="space-y-2"
                 onDragOver={(e) => {
                   // 목록 끝에 드롭할 수 있도록
                   if (draggedTodo) {
@@ -276,53 +275,53 @@ export default function TodoList({
                     {dragOverCategory === category &&
                       dragOverIndex === index && (
                         <div
-                          className='h-1 mb-2 bg-gradient-to-r from-cyan-400 to-blue-400 rounded'
+                          className="h-1 mb-2 bg-gradient-to-r from-cyan-400 to-blue-400 rounded"
                           style={{
-                            boxShadow: '0 0 10px rgba(80, 200, 255, 0.6)',
+                            boxShadow: "0 0 10px rgba(80, 200, 255, 0.6)",
                           }}
                         ></div>
                       )}
                     {editingTodoId === todo.id ? (
                       // 수정 모드
                       <div
-                        className='flex items-center gap-2.5 p-2.5 bg-[#16213e] rounded-xl border border-cyan-500/30'
-                        style={{ boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)' }}
+                        className="flex items-center gap-2.5 p-2.5 bg-[#16213e] rounded-xl border border-cyan-500/30"
+                        style={{ boxShadow: "0 2px 8px rgba(0, 0, 0, 0.3)" }}
                       >
                         <input
-                          type='text'
+                          type="text"
                           value={editingText}
                           onChange={(e) => setEditingText(e.target.value)}
                           onKeyPress={(e) => {
-                            if (e.key === 'Enter') {
+                            if (e.key === "Enter") {
                               handleSaveEdit(todo.id);
-                            } else if (e.key === 'Escape') {
+                            } else if (e.key === "Escape") {
                               handleCancelEdit();
                             }
                           }}
                           onBlur={() => handleSaveEdit(todo.id)}
-                          className='flex-1 min-w-0 p-2 bg-[#0f1624] border border-cyan-500/30 rounded-lg text-cyan-100 placeholder-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400'
+                          className="flex-1 min-w-0 p-2 bg-[#0f1624] border border-cyan-500/30 rounded-lg text-cyan-100 placeholder-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400"
                           style={{
-                            boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.2)',
+                            boxShadow: "inset 0 2px 4px rgba(0, 0, 0, 0.2)",
                           }}
                           autoFocus
                         />
                         <button
                           onClick={() => handleSaveEdit(todo.id)}
-                          className='w-7 h-7 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center text-white text-sm hover:from-emerald-400 hover:to-teal-400 transition-all shrink-0'
+                          className="w-7 h-7 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center text-white text-sm hover:from-emerald-400 hover:to-teal-400 transition-all shrink-0"
                           style={{
-                            boxShadow: '0 0 10px rgba(16, 185, 129, 0.4)',
+                            boxShadow: "0 0 10px rgba(16, 185, 129, 0.4)",
                           }}
-                          title='저장'
+                          title="저장"
                         >
                           ✓
                         </button>
                         <button
                           onClick={handleCancelEdit}
-                          className='w-7 h-7 bg-gradient-to-br from-red-500 to-rose-500 rounded-lg flex items-center justify-center text-white text-lg hover:from-red-400 hover:to-rose-400 transition-all shrink-0 font-bold'
+                          className="w-7 h-7 bg-gradient-to-br from-red-500 to-rose-500 rounded-lg flex items-center justify-center text-white text-lg hover:from-red-400 hover:to-rose-400 transition-all shrink-0 font-bold"
                           style={{
-                            boxShadow: '0 0 10px rgba(239, 68, 68, 0.4)',
+                            boxShadow: "0 0 10px rgba(239, 68, 68, 0.4)",
                           }}
-                          title='취소'
+                          title="취소"
                         >
                           ✕
                         </button>
@@ -343,64 +342,64 @@ export default function TodoList({
                         onMouseEnter={() => setHoveredTodoId(todo.id)}
                         onMouseLeave={() => setHoveredTodoId(null)}
                         className={`group flex items-center gap-2.5 p-2.5 bg-[#16213e] rounded-xl cursor-move transition-all border ${
-                          draggedTodo?.id === todo.id ? 'opacity-50' : ''
+                          draggedTodo?.id === todo.id ? "opacity-50" : ""
                         } ${
                           dragOverCategory === category &&
                           dragOverIndex === index
-                            ? 'ring-2 ring-cyan-400 border-cyan-400'
-                            : 'border-cyan-500/20'
+                            ? "ring-2 ring-cyan-400 border-cyan-400"
+                            : "border-cyan-500/20"
                         }`}
                         style={{
                           boxShadow:
                             dragOverCategory === category &&
                             dragOverIndex === index
-                              ? '0 0 20px rgba(80, 200, 255, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3)'
-                              : '0 2px 8px rgba(0, 0, 0, 0.3)',
+                              ? "0 0 20px rgba(80, 200, 255, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3)"
+                              : "0 2px 8px rgba(0, 0, 0, 0.3)",
                         }}
                       >
                         <input
-                          type='checkbox'
+                          type="checkbox"
                           checked={todo.completed}
                           onChange={() => onToggleTodo(todo.id)}
-                          className='cursor-pointer'
+                          className="cursor-pointer"
                           onClick={(e) => e.stopPropagation()}
                           onMouseDown={(e) => e.stopPropagation()}
                         />
                         <span
                           className={`text-cyan-100 flex-1 ${
                             todo.completed
-                              ? 'line-through opacity-40 text-cyan-500'
-                              : ''
+                              ? "line-through opacity-40 text-cyan-500"
+                              : ""
                           }`}
                           style={{
                             textShadow: todo.completed
-                              ? 'none'
-                              : '0 0 4px rgba(80, 200, 255, 0.3)',
+                              ? "none"
+                              : "0 0 4px rgba(80, 200, 255, 0.3)",
                           }}
                         >
                           {todo.text}
                         </span>
                         {/* 수정/삭제 버튼 - 호버 시 표시 */}
                         {hoveredTodoId === todo.id && !draggedTodo && (
-                          <div className='flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity'>
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleEditTodo(todo);
                               }}
-                              className='w-7 h-7 bg-transparent rounded-lg flex items-center justify-center text-cyan-300 text-sm hover:text-cyan-200 transition-all font-bold'
+                              className="w-7 h-7 bg-transparent rounded-lg flex items-center justify-center text-cyan-300 text-sm hover:text-cyan-200 transition-all font-bold"
                               style={{
-                                textShadow: '0 0 8px rgba(80, 200, 255, 0.6)',
-                                transform: 'rotate(-45deg)',
+                                textShadow: "0 0 8px rgba(80, 200, 255, 0.6)",
+                                transform: "rotate(-45deg)",
                               }}
-                              title='수정'
+                              title="수정"
                               onMouseEnter={(e) => {
                                 e.currentTarget.style.textShadow =
-                                  '0 0 12px rgba(80, 200, 255, 0.9)';
+                                  "0 0 12px rgba(80, 200, 255, 0.9)";
                               }}
                               onMouseLeave={(e) => {
                                 e.currentTarget.style.textShadow =
-                                  '0 0 8px rgba(80, 200, 255, 0.6)';
+                                  "0 0 8px rgba(80, 200, 255, 0.6)";
                               }}
                             >
                               ✏
@@ -410,18 +409,18 @@ export default function TodoList({
                                 e.stopPropagation();
                                 handleDeleteTodo(todo.id);
                               }}
-                              className='w-7 h-7 bg-transparent rounded-lg flex items-center justify-center text-red-400 text-lg hover:text-red-300 transition-all font-bold'
+                              className="w-7 h-7 bg-transparent rounded-lg flex items-center justify-center text-red-400 text-lg hover:text-red-300 transition-all font-bold"
                               style={{
-                                textShadow: '0 0 8px rgba(239, 68, 68, 0.6)',
+                                textShadow: "0 0 8px rgba(239, 68, 68, 0.6)",
                               }}
-                              title='삭제'
+                              title="삭제"
                               onMouseEnter={(e) => {
                                 e.currentTarget.style.textShadow =
-                                  '0 0 12px rgba(239, 68, 68, 0.9)';
+                                  "0 0 12px rgba(239, 68, 68, 0.9)";
                               }}
                               onMouseLeave={(e) => {
                                 e.currentTarget.style.textShadow =
-                                  '0 0 8px rgba(239, 68, 68, 0.6)';
+                                  "0 0 8px rgba(239, 68, 68, 0.6)";
                               }}
                             >
                               ✕
@@ -438,8 +437,8 @@ export default function TodoList({
                   dragOverIndex === (todosByCategory[category]?.length || 0) &&
                   draggedTodo && (
                     <div
-                      className='h-1 mt-2 bg-gradient-to-r from-cyan-400 to-blue-400 rounded'
-                      style={{ boxShadow: '0 0 10px rgba(80, 200, 255, 0.6)' }}
+                      className="h-1 mt-2 bg-gradient-to-r from-cyan-400 to-blue-400 rounded"
+                      style={{ boxShadow: "0 0 10px rgba(80, 200, 255, 0.6)" }}
                     ></div>
                   )}
 
@@ -447,9 +446,9 @@ export default function TodoList({
                 {showInputForCategory[category] && (
                   <input
                     id={`todo-input-${category}`}
-                    type='text'
-                    placeholder='할 일의 내용'
-                    value={newTodoTexts[category] || ''}
+                    type="text"
+                    placeholder="할 일의 내용"
+                    value={newTodoTexts[category] || ""}
                     onChange={(e) =>
                       setNewTodoTexts({
                         ...newTodoTexts,
@@ -457,16 +456,16 @@ export default function TodoList({
                       })
                     }
                     onKeyPress={(e) => {
-                      if (e.key === 'Enter') {
+                      if (e.key === "Enter") {
                         handleAddTodo(category);
-                      } else if (e.key === 'Escape') {
+                      } else if (e.key === "Escape") {
                         setShowInputForCategory({
                           ...showInputForCategory,
                           [category]: false,
                         });
                         setNewTodoTexts({
                           ...newTodoTexts,
-                          [category]: '',
+                          [category]: "",
                         });
                       }
                     }}
@@ -479,8 +478,8 @@ export default function TodoList({
                         });
                       }
                     }}
-                    className='w-full p-2 bg-[#0f1624] border border-cyan-500/30 rounded-xl text-cyan-100 placeholder-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400'
-                    style={{ boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.2)' }}
+                    className="w-full p-2 bg-[#0f1624] border border-cyan-500/30 rounded-xl text-cyan-100 placeholder-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400"
+                    style={{ boxShadow: "inset 0 2px 4px rgba(0, 0, 0, 0.2)" }}
                     autoFocus
                   />
                 )}
@@ -492,10 +491,10 @@ export default function TodoList({
         {/* 새 카테고리 추가 버튼 */}
         <button
           onClick={() => setIsPlanetModalOpen(true)}
-          className='w-full p-3 bg-[#16213e] rounded-xl text-cyan-300 hover:bg-[#1a1a2e] transition-all text-left font-medium border border-cyan-500/20 hover:border-cyan-500/40'
+          className="w-full p-3 bg-[#16213e] rounded-xl text-cyan-300 hover:bg-[#1a1a2e] transition-all text-left font-medium border border-cyan-500/20 hover:border-cyan-500/40"
           style={{
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
-            textShadow: '0 0 8px rgba(80, 200, 255, 0.4)',
+            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.3)",
+            textShadow: "0 0 8px rgba(80, 200, 255, 0.4)",
           }}
         >
           + 새 행성 추가
@@ -505,8 +504,8 @@ export default function TodoList({
           isOpen={isPlanetModalOpen}
           onClose={() => {
             setIsPlanetModalOpen(false);
-            setNewCategoryName('');
-            setNewCategoryDescription('');
+            setNewCategoryName("");
+            setNewCategoryDescription("");
           }}
           name={newCategoryName}
           description={newCategoryDescription}
@@ -516,51 +515,51 @@ export default function TodoList({
         />
       </div>
 
-      <div className='pt-5 border-t border-cyan-500/30'>
+      <div className="pt-5 border-t border-cyan-500/30">
         <button
           onClick={onLaunch}
           disabled={checkedCount === 0 || isLaunching}
-          className='
+          className="
             relative w-full p-4 bg-transparent border-none rounded-lg cursor-pointer
             disabled:opacity-50 disabled:cursor-not-allowed
             group
-          '
+          "
         >
           {/* 이미지 */}
           <img
-            src='/src/assets/launch_button.png'
-            alt='발사 버튼'
-            className='
+            src="/src/assets/launch_button.png"
+            alt="발사 버튼"
+            className="
               mx-auto w-32 h-auto
               transition-transform duration-200
               group-hover:scale-105
-            '
+            "
           />
 
           {/* 중앙 숫자 또는 로딩 */}
           {isLaunching ? (
             <div
-              className='
+              className="
                 absolute inset-0 flex items-center justify-center
                 pointer-events-none
-              '
+              "
             >
-              <div className='flex flex-col items-center gap-2'>
-                <div className='w-6 h-6 border-2 border-cyan-300 border-t-transparent rounded-full animate-spin'></div>
-                <span className='text-cyan-300 text-xs font-medium'>
+              <div className="flex flex-col items-center gap-2">
+                <div className="w-6 h-6 border-2 border-cyan-300 border-t-transparent rounded-full animate-spin"></div>
+                <span className="text-cyan-300 text-xs font-medium">
                   발사 중...
                 </span>
               </div>
             </div>
           ) : (
             <span
-              className='
+              className="
                 absolute inset-0 flex items-center justify-center
                 text-white font-bold text-lg
                 pointer-events-none
                 transition-all duration-200
                 group-hover:scale-110
-              '
+              "
             >
               {checkedCount}
             </span>
