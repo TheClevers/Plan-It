@@ -5,11 +5,11 @@ import { generateImage } from "../services/geminiImage";
 import ref1 from "../assets/reference/planet_ref1.png";
 import ref2 from "../assets/reference/planet_ref2.png";
 import ref3 from "../assets/reference/planet_ref3.png";
-import ref4 from "../assets/reference/planet_ref4.png";
-import ref5 from "../assets/reference/planet_ref5.png";
-import ref6 from "../assets/reference/planet_ref6.png";
-import ref7 from "../assets/reference/planet_ref7.png";
-import ref8 from "../assets/reference/planet_ref8.png";
+import ref4 from "../assets/reference/planet_ref9.png";
+import ref5 from "../assets/reference/planet_ref10.png";
+import ref6 from "../assets/reference/planet_ref11.png";
+import ref7 from "../assets/reference/planet_ref12.png";
+import ref8 from "../assets/reference/planet_ref13.png";
 
 // 기본 설정값 - 코드에서 명확하게 보이도록 구조화
 const DEFAULT_PROMPT = "냥냥성 행성 이미지를 이렇게 만들어줘";
