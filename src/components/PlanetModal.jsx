@@ -145,13 +145,13 @@ export default function PlanetModal({
             {description || "행성 소개를 입력하지 않았어요!"}
           </div>
           <div>
-            <h3 className='text-[#4a90e2] text-sm font-semibold mb-3'>
+            <h3 className="text-[#4a90e2] text-sm font-semibold mb-3">
               완료된 할 일
             </h3>
             <div className="space-y-2">
               {sortedTasks.length === 0 ? (
                 <p className="text-gray-500 text-center p-3 text-sm">
-                  아직 개발 이력이 없습니다.
+                  아직 완료한 일이 없습니다.
                 </p>
               ) : (
                 sortedTasks.map((task) => (
