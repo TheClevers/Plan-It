@@ -13,14 +13,14 @@ export default function Tutorial() {
   const navigate = useNavigate();
 
   const scripts = [
-    "지금은 우주 개발 시대, 무한 경쟁 지구에 지쳤다...",
-    "이젠 지구를 벗어날 때. 나만의 행성을 찾으러 떠나야겠다.",
-    "이삿짐 준비, 로켓 준비 완료!",
-    "우주 항해를 출발합니다. 당신만의 행성들이 기다리고 있습니다!",
-    "우주 개발 환경에 접속하신 걸 환영합니다.",
-    "할 일 카테고리를 입력하면 행성으로 나타나요!",
-    "행성 안에 할 일은 적어보세요!",
-    "할 일이 완료되었다면 체크하고 버튼을 누르면 행성이 개발됩니다!",
+    "무한 경쟁 사회... 작디 작은 지구에서 내 삶은 어디에...",
+    "이젠 지구를 벗어날 때. 나의 쉴 곳을 찾아 떠나자.",
+    "이삿짐 준비, 멀리멀리 떠날 로켓도 완성!",
+    "우주 항해를 시작합니다. 나만의 성취를 느껴보세요!",
+    "우주 개발 TO-DO 앱, Plan-It에 접속하신 여행자님을 환영합니다.",
+    "카테고리를 입력하면 알맞은 행성이 만들어져요!",
+    "행성 안에 할 일을 적어보세요!",
+    "할 일을 완료하고 발사 버튼을 누르면 행성이 개발됩니다!",
     "자신만의 행성을 키워보세요!"
   ];
 
@@ -73,16 +73,29 @@ export default function Tutorial() {
           />
 
           {/* ⭐ 스크립트 박스도 비례 확대 */}
-          <button
-            onClick={handleNext}
-            className="relative z-50 w-[1040px] bg-white p-8 rounded-2xl shadow-xl text-black 
-                       text-xl leading-relaxed hover:bg-gray-200 transition active:scale-95"
-          >
-            {scripts[step]}
-            <div className="text-right text-base text-gray-500 mt-3">
-              (클릭하여 계속하기)
-            </div>
-          </button>
+        <button
+          onClick={handleNext}
+          className="
+            relative z-50 w-[1040px] p-8 rounded-3xl 
+            text-white text-xl leading-relaxed 
+            transition active:scale-95
+            shadow-[0_0_20px_rgba(0,255,255,0.25)]
+            backdrop-blur-md
+          "
+          style={{
+            background: "linear-gradient(145deg, #0B1220, #0F1A2E)",
+
+            border: "8px solid",
+            borderImage: "linear-gradient(90deg, #1fb8d6, #4e6bff) 1",
+            boxShadow: "0 0 20px rgba(0,200,255,0.5), inset 0 0 20px rgba(0,0,0,0.7)"
+
+          }}
+        >
+          {scripts[step]}
+          <div className="text-right text-base text-gray-300 mt-3">
+            (클릭하여 계속하기)
+          </div>
+        </button>
         </div>
       )}
     </div>
