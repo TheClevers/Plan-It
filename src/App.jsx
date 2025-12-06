@@ -9,19 +9,6 @@ import ImageGenerator from "./components/ImageGenerator";
 import ChevronRight from "./assets/svg/ChevronRight";
 import ChevronLeft from "./assets/svg/ChevronLeft";
 
-// 레퍼런스 이미지 8장
-import ref1 from "./assets/reference/planet_ref1.png";
-import ref2 from "./assets/reference/planet_ref2.png";
-import ref3 from "./assets/reference/planet_ref3.png";
-import ref4 from "./assets/reference/planet_ref4.png";
-import ref5 from "./assets/reference/planet_ref5.png";
-import ref6 from "./assets/reference/planet_ref6.png";
-import ref7 from "./assets/reference/planet_ref7.png";
-import ref8 from "./assets/reference/planet_ref8.png";
-
-// 👇 Gemini 이미지 생성 함수
-import { generateImage } from "./services/geminiImage";
-
 // 태양 관련 상수
 const SUN_SIZE = 800; // 태양 이미지 크기(px)
 const SUN_LEFT_OFFSET = (-SUN_SIZE * 3) / 4; // 화면 왼쪽 밖으로 3/4 나가게
@@ -105,7 +92,6 @@ function App() {
     { name: "청소별", description: "" },
     { name: "공부별", description: "" },
   ]);
-  const [selectedPlanetCategory, setSelectedPlanetCategory] = useState(null);
   const [clickedPlanetCategories, setClickedPlanetCategories] = useState(
     new Set()
   );
@@ -190,7 +176,11 @@ function App() {
       const taskCountLast24h = tasks.filter(
         (t) => now - new Date(t.completedAt) < 24 * 60 * 60 * 1000
       ).length;
-      const avgTaskTime = 15 + Math.floor(Math.random() * 10); // 예시: 랜덤 평균 시간
+      // 카테고리 이름 기반 결정적 값 생성 (0-9 범위)
+      const categoryHash = category
+        .split("")
+        .reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      const avgTaskTime = 15 + (categoryHash % 10); // 예시: 카테고리별 고정 평균 시간
 
       acc[category] = {
         lastActivityTime,
@@ -308,44 +298,6 @@ function App() {
       return next;
     });
   }, [allCategories, getPlanetSize]);
-
-  // Gemini 호출: 카테고리마다 행성 이미지 생성 (이미 생성된 건 다시 안 부름)
-  useEffect(() => {
-    if (allCategories.length === 0) return;
-
-    const categoriesWithoutImage = allCategories.filter(
-      (cat) => !planetImages[cat]
-    );
-
-    if (categoriesWithoutImage.length === 0) return;
-
-    categoriesWithoutImage.forEach(async (category) => {
-      try {
-        // URL 목록을 File[] 로 변환
-        const fileRefs = await Promise.all(
-          [ref1, ref2, ref3, ref4, ref5, ref6, ref7, ref8].map((url, idx) =>
-            urlToFile(url, `ref${idx + 1}.png`)
-          )
-        );
-
-        // 프롬프트 생성
-        const prompt = buildPlanetPrompt(category);
-
-        // File[] 전달
-        // const dataUrl = await generateImage(prompt, fileRefs);
-        const dataUrl = null;
-
-        // 이미지 저장
-        if (dataUrl) {
-          setPlanetImages((prev) =>
-            prev[category] ? prev : { ...prev, [category]: dataUrl }
-          );
-        }
-      } catch (err) {
-        console.error("Gemini 행성 이미지 생성 실패:", category, err);
-      }
-    });
-  }, [allCategories, planetImages]);
 
   const handleAddCategory = (categoryObj) => {
     // categoryObj는 { name: string, description?: string } 형태라고 가정
