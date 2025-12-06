@@ -1,5 +1,4 @@
 import { useState } from "react";
-import Calendar from "../assets/svg/Calendar";
 import { NewPlanetModal } from "./NewPlanetModal";
 
 export default function TodoList({
@@ -157,11 +156,13 @@ export default function TodoList({
     setIsPlanetModalOpen(false);
   };
 
-  const checkedCount = todos.filter((todo) => todo.completed).length;
+  const checkedCount = todos.filter((todo) => todo.checked).length;
 
   return (
     <div
-      className="max-h-[calc(100vh-40px)] bg-gradient-to-br from-[#0a0a1a] via-[#1a1a2e] to-[#16213e] p-5 flex flex-col overflow-y-auto rounded-2xl shadow-2xl backdrop-blur-sm border border-cyan-500/20"
+      className="max-h-[calc(100vh-40px)] bg-gradient-to-br from-[#0a0a1a] via-[#1a1a2e] to-[#16213e]
+             p-5 flex flex-col overflow-y-auto todo-scroll rounded-2xl shadow-2xl
+             backdrop-blur-sm border border-cyan-500/20 pr-2"
       style={{
         boxShadow:
           "0 0 40px rgba(80, 200, 255, 0.1), inset 0 0 60px rgba(80, 200, 255, 0.05)",
@@ -175,13 +176,9 @@ export default function TodoList({
         >
           {getDateString()}
         </h2>
-        <Calendar
-          className="w-5 h-5 text-cyan-400"
-          style={{ filter: "drop-shadow(0 0 4px rgba(80, 200, 255, 0.6))" }}
-        />
       </div>
 
-      <div className="flex-1 overflow-y-auto mb-5 space-y-4">
+      <div className="flex-1 overflow-y-auto mb-5 space-y-4 pr-4 todo-scroll">
         {categories.map((cat) => {
           const category = cat;
 
@@ -341,7 +338,7 @@ export default function TodoList({
                         onDragEnd={handleDragEnd}
                         onMouseEnter={() => setHoveredTodoId(todo.id)}
                         onMouseLeave={() => setHoveredTodoId(null)}
-                        className={`group flex items-center gap-2.5 p-2.5 bg-[#16213e] rounded-xl cursor-move transition-all border ${
+                        className={`group flex items-center gap-2.5 p-2.5 ml-2 bg-[#16213e] rounded-xl cursor-move transition-all border ${
                           draggedTodo?.id === todo.id ? "opacity-50" : ""
                         } ${
                           dragOverCategory === category &&
@@ -359,7 +356,7 @@ export default function TodoList({
                       >
                         <input
                           type="checkbox"
-                          checked={todo.completed}
+                          checked={todo.checked}
                           onChange={() => onToggleTodo(todo.id)}
                           className="cursor-pointer"
                           onClick={(e) => e.stopPropagation()}
@@ -367,12 +364,12 @@ export default function TodoList({
                         />
                         <span
                           className={`text-cyan-100 flex-1 ${
-                            todo.completed
+                            todo.checked
                               ? "line-through opacity-40 text-cyan-500"
                               : ""
                           }`}
                           style={{
-                            textShadow: todo.completed
+                            textShadow: todo.checked
                               ? "none"
                               : "0 0 4px rgba(80, 200, 255, 0.3)",
                           }}
@@ -444,44 +441,55 @@ export default function TodoList({
 
                 {/* 새 할 일 입력 - + 버튼을 눌렀을 때만 표시 */}
                 {showInputForCategory[category] && (
-                  <input
-                    id={`todo-input-${category}`}
-                    type="text"
-                    placeholder="할 일의 내용"
-                    value={newTodoTexts[category] || ""}
-                    onChange={(e) =>
-                      setNewTodoTexts({
-                        ...newTodoTexts,
-                        [category]: e.target.value,
-                      })
-                    }
-                    onKeyPress={(e) => {
-                      if (e.key === "Enter") {
-                        handleAddTodo(category);
-                      } else if (e.key === "Escape") {
-                        setShowInputForCategory({
-                          ...showInputForCategory,
-                          [category]: false,
-                        });
+                  <div className="relative">
+                    <input
+                      id={`todo-input-${category}`}
+                      type="text"
+                      placeholder="할 일의 내용"
+                      value={newTodoTexts[category] || ""}
+                      onChange={(e) =>
                         setNewTodoTexts({
                           ...newTodoTexts,
-                          [category]: "",
-                        });
+                          [category]: e.target.value,
+                        })
                       }
-                    }}
-                    onBlur={() => {
-                      // 입력이 비어있으면 자동으로 닫기
-                      if (!newTodoTexts[category]?.trim()) {
-                        setShowInputForCategory({
-                          ...showInputForCategory,
-                          [category]: false,
-                        });
-                      }
-                    }}
-                    className="w-full p-2 bg-[#0f1624] border border-cyan-500/30 rounded-xl text-cyan-100 placeholder-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400"
-                    style={{ boxShadow: "inset 0 2px 4px rgba(0, 0, 0, 0.2)" }}
-                    autoFocus
-                  />
+                      onKeyPress={(e) => {
+                        if (e.key === "Enter") {
+                          handleAddTodo(category);
+                        } else if (e.key === "Escape") {
+                          setShowInputForCategory({
+                            ...showInputForCategory,
+                            [category]: false,
+                          });
+                          setNewTodoTexts({
+                            ...newTodoTexts,
+                            [category]: "",
+                          });
+                        }
+                      }}
+                      onBlur={() => {
+                        // 입력이 비어있으면 자동으로 닫기
+                        if (!newTodoTexts[category]?.trim()) {
+                          setShowInputForCategory({
+                            ...showInputForCategory,
+                            [category]: false,
+                          });
+                        }
+                      }}
+                      className="w-full p-2 pr-24 bg-[#0f1624] border border-cyan-500/30 rounded-xl text-cyan-100 placeholder-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400"
+                      style={{
+                        boxShadow: "inset 0 2px 4px rgba(0, 0, 0, 0.2)",
+                      }}
+                      autoFocus
+                    />
+
+                    {/* ✅ 입력이 있을 때 오른쪽에 연한 안내 텍스트 표시 */}
+                    {newTodoTexts[category]?.trim() && (
+                      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-cyan-400/60">
+                        Enter로 저장
+                      </span>
+                    )}
+                  </div>
                 )}
               </div>
             </div>

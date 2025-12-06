@@ -57,9 +57,8 @@ export default function Planet({ category, size, onClick, imageUrl }) {
           width: `${size}px`,
           height: `${size}px`,
           transition: "width 0.5s ease-out, height 0.5s ease-out",
-          // AI 이미지가 있을 때도 은은한 그라데이션이 뒤에 깔리도록
-          background: `radial-gradient(circle at 30% 30%, ${colors.from}, ${colors.to})`,
-          boxShadow: `0 0 15px ${hexToRgba(colors.to, 0.7)}`,
+          background: "transparent",
+          boxShadow: "none"
         }}
       >
         {planetImage ? (
