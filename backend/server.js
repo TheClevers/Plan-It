@@ -13,8 +13,10 @@ app.use(
     origin: [
       "http://localhost:5173",
       "https://plan-it-origin-backend.onrender.com",
+      "https://i-made-it.onrender.com",
     ],
     methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true,
   })
 );
 app.use(express.json());
