@@ -1,5 +1,4 @@
 import { useState } from "react";
-import Calendar from "../assets/svg/Calendar";
 import { NewPlanetModal } from "./NewPlanetModal";
 
 export default function TodoList({
@@ -161,7 +160,9 @@ export default function TodoList({
 
   return (
     <div
-      className="max-h-[calc(100vh-40px)] bg-gradient-to-br from-[#0a0a1a] via-[#1a1a2e] to-[#16213e] p-5 flex flex-col overflow-y-auto rounded-2xl shadow-2xl backdrop-blur-sm border border-cyan-500/20"
+      className="max-h-[calc(100vh-40px)] bg-gradient-to-br from-[#0a0a1a] via-[#1a1a2e] to-[#16213e]
+             p-5 flex flex-col overflow-y-auto todo-scroll rounded-2xl shadow-2xl
+             backdrop-blur-sm border border-cyan-500/20 pr-2"
       style={{
         boxShadow:
           "0 0 40px rgba(80, 200, 255, 0.1), inset 0 0 60px rgba(80, 200, 255, 0.05)",
@@ -175,13 +176,9 @@ export default function TodoList({
         >
           {getDateString()}
         </h2>
-        <Calendar
-          className="w-5 h-5 text-cyan-400"
-          style={{ filter: "drop-shadow(0 0 4px rgba(80, 200, 255, 0.6))" }}
-        />
       </div>
 
-      <div className="flex-1 overflow-y-auto mb-5 space-y-4">
+      <div className="flex-1 overflow-y-auto mb-5 space-y-4 pr-4 todo-scroll">
         {categories.map((cat) => {
           const category = cat;
 
@@ -341,7 +338,7 @@ export default function TodoList({
                         onDragEnd={handleDragEnd}
                         onMouseEnter={() => setHoveredTodoId(todo.id)}
                         onMouseLeave={() => setHoveredTodoId(null)}
-                        className={`group flex items-center gap-2.5 p-2.5 bg-[#16213e] rounded-xl cursor-move transition-all border ${
+                        className={`group flex items-center gap-2.5 p-2.5 ml-2 bg-[#16213e] rounded-xl cursor-move transition-all border ${
                           draggedTodo?.id === todo.id ? "opacity-50" : ""
                         } ${
                           dragOverCategory === category &&

@@ -1,3 +1,26 @@
+/* ---- PF Stardust 3.0 S 등록 ---- */
+@font-face {
+  font-family: 'PFStardust';
+  src: url('/src/assets/fonts/PFStardust.ttf') format('truetype'),
+       url('/src/assets/fonts/PFStardust_s.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+/* ---- NeoDGM 폰트 등록 ---- */
+@font-face {
+  font-family: 'NeoDGM';
+  src: url('./assets/fonts/neodgm.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+/* Tailwind */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -9,15 +32,14 @@
     box-sizing: border-box;
   }
 
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
-      "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans",
-      "Helvetica Neue", sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    background-color: #0a0a1a;
-    color: white;
-  }
+body {
+  font-family: 'PFStardust', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #0a0a1a;
+  color: white;
+}
+
 
   #root {
     width: 100%;
@@ -41,8 +63,10 @@
   }
 
   input[type="checkbox"]:checked {
-    background-color: #eab308;
-    border-color: #eab308;
+    /* background-color: #eab308;
+    border-color: #eab308; */
+    background-color: #fc5aff;
+    border-color: #fc5aff;
   }
 
   input[type="checkbox"]:checked::after {
@@ -61,8 +85,10 @@
   }
 
   input[type="checkbox"]:checked:hover {
-    background-color: #facc15;
-    border-color: #facc15;
+    /* background-color: #facc15;
+    border-color: #facc15; */
+    background-color: #ff55d7;
+    border-color: #ff45d4;
   }
 
   /* 우주 배경 스타일 */
@@ -182,3 +208,33 @@
   animation: sun-rotate 120s linear infinite;
   transform-origin: 50% 50%;
 }
+
+/* TodoList 전용 스크롤바 */
+.todo-scroll {
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: rgba(148, 163, 184, 0.3) transparent; /* slate-400 느낌 */
+}
+
+/* Chrome, Edge, Safari */
+.todo-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+
+.todo-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.todo-scroll::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.7); /* 연한 회청색 */
+  border-radius: 999px;
+  box-shadow: none;         /* 네온 광 삭제 */
+}
+
+/* 완전히 숨기고 싶으면 아래 세 줄만 쓰면 됨 (위 스타일 대신)
+.todo-scroll {
+  scrollbar-width: none;
+}
+.todo-scroll::-webkit-scrollbar {
+  display: none;
+}
+*/
