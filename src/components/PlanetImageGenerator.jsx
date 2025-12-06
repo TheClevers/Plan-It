@@ -37,8 +37,7 @@ export default function PlanetImageGenerator() {
         onChange={(e) => setPrompt(e.target.value)}
       />
 
-      <div className="mb-2 text-[10px] text-gray-300">
-      </div>
+      <div className="mb-2 text-[10px] text-gray-300"></div>
 
       <button
         onClick={handleSend}
