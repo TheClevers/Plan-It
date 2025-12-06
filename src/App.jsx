@@ -557,14 +557,14 @@ function App() {
         style={{ minHeight: "100vh" }}
       >
         {/* TodoList 토글 컨트롤 */}
-        <div className="absolute top-5 left-5 z-50">
+        {/* <div className="absolute top-5 left-5 z-50">
           <img
             src="/favicon.png"
             alt="todo list button"
             className="w-12 h-12"
             draggable={false}
           />
-        </div>
+        </div> */}
 
         {/* TodoList 컨테이너 - 접는 버튼 포함 */}
         <div
@@ -575,7 +575,7 @@ function App() {
           }`}
         >
           {/* TodoList 카드 */}
-          <div className="w-[300px]">
+          <div className="w-[340px]">
             <TodoList
               todos={todos}
               categories={allCategories}
