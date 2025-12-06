@@ -73,18 +73,46 @@ Do not generate in 3D style.
 `.trim();
 }
 
-// 행성 상태 메시지 함수
-function getPlanetStatusMessage(data) {
-  if (!data || data.population === 0) return "🪐 행성을 키워보자!";
-  const now = new Date();
-  const hoursSinceLast =
-    (now - new Date(data.lastActivityTime)) / 1000 / 60 / 60;
 
-  if (hoursSinceLast > 72) return "🚨 지금 행성 관리가 안되고 있어!";
-  if (data.population >= 10000) return "😵 너무 좁아!";
-  if (data.taskCountLast24h >= 5) return "🔥 최근에 엄청 활발하군요!";
-  if (data.avgTaskTime < 10) return "🌱 무럭무럭 자라는군!";
-  return "🛰️ 평온한 상태입니다.";
+// 행성 상태 메시지 생성 함수
+// ======================
+function getMessage(planet) {
+  // 1) 데이터가 없거나, 인구 0 → 기본 메시지
+  if (!planet || planet.population === 0) {
+    return "🪐 행성을 키워보자!";
+  }
+  const now = new Date();
+  const minsSince = (now - new Date(planet.lastActivityTime)) / 1000 / 60;
+  const daysSince = minsSince / 60 / 24;
+  const daysSinceUpgrade =
+    (now - new Date(planet.lastUpgradeTime)) / 1000 / 60 / 60 / 24;
+
+// 1) 즉시 반응 메시지
+if (planet.recentBatchCount >= 3) return "⚡ 와! 발전이 아주 빠른데?";
+if (planet.taskCountLast24h === 1) return "🌅 오늘의 첫 번째 업적 달성!";
+if (planet.recentFastActions >= 2) return "🔥 열정이 대단한데?";
+
+// 2) 성장 관련 메시지
+if (planet.population >= 30000) return "🏙 너무 좁아!";
+if (planet.population >= 12000) return "🌎 행성이 꽤 살아나는걸?";
+
+// 3) 생산성 / 활동 메시지
+if (minsSince <= 10) return "🌱 무럭무럭 자라는군!";
+if (planet.avgTaskTime <= 10) return "🎉 생산성이 최고야!";
+
+// 4) 너무 조용함
+if (planet.taskCountLast24h === 0 && minsSince > 10)
+  return "😴 너무 조용해...";
+
+// 5) 업그레이드 필요
+if (daysSinceUpgrade >= 30) return "🔧 업그레이드가 필요해!";
+
+// 6) 장기 방치
+if (daysSince >= 7) return "🌋 지금 행성 관리가 안되고 있어!";
+
+// 7) 기본
+return "🪐 행성을 키워보자!";
+
 }
 
 function App() {
@@ -375,6 +403,42 @@ function App() {
       return acc;
     }, {});
   }, [allCategories, completedTasks]);
+
+  // 말풍선 자동 순환
+const [currentHintIndex, setCurrentHintIndex] = useState(0);
+const [isHintVisible, setIsHintVisible] = useState(true);
+
+
+  // 말풍선 자동 순환
+  useEffect(() => {
+    if (allCategories.length === 0) return;
+
+    let visibleTimer = null;
+    let hiddenTimer = null;
+
+    const startCycle = () => {
+      // 말풍선 3초 ON
+      setIsHintVisible(true);
+
+      visibleTimer = setTimeout(() => {
+        setIsHintVisible(false);
+
+        // 7초 OFF → 다음 행성으로 인덱스 이동
+        hiddenTimer = setTimeout(() => {
+          setCurrentHintIndex((idx) => (idx + 1) % allCategories.length);
+          startCycle(); // 반복
+        }, 4000);
+      }, 4000);
+    };
+
+    startCycle();
+
+    return () => {
+      clearTimeout(visibleTimer);
+      clearTimeout(hiddenTimer);
+    };
+  }, [allCategories]);
+
 
   // 궤도 반지름 목록 (중복 제거)
   const uniqueRadii = useMemo(() => {
@@ -1029,14 +1093,14 @@ function App() {
         style={{ minHeight: "100vh" }}
       >
         {/* TodoList 토글 컨트롤 */}
-        <div className="absolute top-5 left-5 z-50">
+        {/* <div className="absolute top-5 left-5 z-50">
           <img
             src="/favicon.png"
             alt="todo list button"
             className="w-12 h-12"
             draggable={false}
           />
-        </div>
+        </div> */}
 
         {/* TodoList 컨테이너 - 접는 버튼 포함 */}
         <div
@@ -1047,7 +1111,7 @@ function App() {
           }`}
         >
           {/* TodoList 카드 */}
-          <div className="w-[300px]">
+          <div className="w-[340px]">
             <TodoList
               todos={todos}
               categories={allCategories}
@@ -1140,10 +1204,16 @@ function App() {
 
             const isClicked = clickedPlanetCategories.has(category);
             const planetData = planetStatusMap[category];
-            const message =
-              isClicked && planetData
-                ? getPlanetStatusMessage(planetData)
-                : null;
+
+  // 자동 순환 인덱스와 비교해서 자동 말풍선 띄움
+  const planetIndex = allCategories.indexOf(category);
+  const showAutoHint = isHintVisible && planetIndex === currentHintIndex;
+
+  // 클릭이거나 자동 중 하나라도 true면 말풍선 표시
+  const showHint = isClicked || showAutoHint;
+
+  // 최종 메시지
+  const statusMessage = getMessage(planetData);
 
             return (
               <div
@@ -1163,43 +1233,43 @@ function App() {
                 />
 
                 {/* 말풍선 */}
-                {isClicked && (
-                  <div
-                    className="absolute z-50 text-black text-sm px-4 py-2 rounded shadow"
-                    style={{
-                      top: `-15px`,
-                      left: "50%",
-                      transform: "translate(-50%, -100%)",
-                      backgroundColor: "white",
-                      padding: "4px 8px", // ⬅ 여백 최소화
-                      borderRadius: "6px",
-                      boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
-                      whiteSpace: "nowrap",
-                      minWidth: "140px",
-                      maxWidth: "240px", // ✅ 말풍선 더 길게
-                      textAlign: "center",
-                      lineHeight: "1.4",
-                      position: "absolute",
-                    }}
-                  >
-                    {message || "행성을 키워보자!"}
+              {showHint && (
+                <div
+                  className="absolute z-50 text-black text-sm px-4 py-2 rounded shadow"
+                  style={{
+                    top: `-15px`,
+                    left: "50%",
+                    transform: "translate(-50%, -100%)",
+                    backgroundColor: "white",
+                    padding: "4px 8px",
+                    borderRadius: "6px",
+                    boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
+                    whiteSpace: "nowrap",
+                    minWidth: "140px",
+                    maxWidth: "240px",
+                    textAlign: "center",
+                    lineHeight: "1.4",
+                    position: "absolute",
+                  }}
+                >
+                  {statusMessage}
 
-                    {/* 꼬리: 아래로 향하게 */}
-                    <div
-                      style={{
-                        position: "absolute",
-                        top: "100%", // 말풍선 하단에 붙이기
-                        left: "50%",
-                        transform: "translateX(-50%)",
-                        width: 0,
-                        height: 0,
-                        borderLeft: "8px solid transparent",
-                        borderRight: "8px solid transparent",
-                        borderTop: "8px solid white", // 아래로 향하는 꼬리
-                      }}
-                    />
-                  </div>
-                )}
+                  {/* 꼬리 */}
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "100%",
+                      left: "50%",
+                      transform: "translateX(-50%)",
+                      width: 0,
+                      height: 0,
+                      borderLeft: "8px solid transparent",
+                      borderRight: "8px solid transparent",
+                      borderTop: "8px solid white",
+                    }}
+                  />
+                </div>
+              )}
               </div>
             );
           })}

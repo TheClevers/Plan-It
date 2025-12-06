@@ -19,7 +19,7 @@ export default function PlanetModal({
     if (!planetPosition) return { x: 0, y: 0 };
 
     // 최종 위치 계산 (행성 오른쪽, 화면 밖으로 나가지 않도록)
-    let finalX = planetPosition.x + planetSize / 2 + offset;
+    let finalX = planetPosition.x + planetSize + 80 / 2 + offset;
     const finalY = planetPosition.y;
 
     // 화면 밖으로 나가는지 확인
@@ -144,10 +144,9 @@ export default function PlanetModal({
             </h3>
             {description || "행성 소개를 입력하지 않았어요!"}
           </div>
-          {/* 개발이력 */}
           <div>
-            <h3 className="text-[#4a90e2] text-sm font-semibold mb-3">
-              개발이력
+            <h3 className='text-[#4a90e2] text-sm font-semibold mb-3'>
+              완료된 할 일
             </h3>
             <div className="space-y-2">
               {sortedTasks.length === 0 ? (
