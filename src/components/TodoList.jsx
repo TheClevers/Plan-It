@@ -440,46 +440,56 @@ export default function TodoList({
                   )}
 
                 {/* 새 할 일 입력 - + 버튼을 눌렀을 때만 표시 */}
-                {showInputForCategory[category] && (
-                  <input
-                    id={`todo-input-${category}`}
-                    type="text"
-                    placeholder="할 일의 내용"
-                    value={newTodoTexts[category] || ""}
-                    onChange={(e) =>
-                      setNewTodoTexts({
-                        ...newTodoTexts,
-                        [category]: e.target.value,
-                      })
-                    }
-                    onKeyPress={(e) => {
-                      if (e.key === "Enter") {
-                        handleAddTodo(category);
-                      } else if (e.key === "Escape") {
-                        setShowInputForCategory({
-                          ...showInputForCategory,
-                          [category]: false,
-                        });
+               {showInputForCategory[category] && (
+                  <div className="relative">
+                    <input
+                      id={`todo-input-${category}`}
+                      type="text"
+                      placeholder="할 일의 내용"
+                      value={newTodoTexts[category] || ""}
+                      onChange={(e) =>
                         setNewTodoTexts({
                           ...newTodoTexts,
-                          [category]: "",
-                        });
+                          [category]: e.target.value,
+                        })
                       }
-                    }}
-                    onBlur={() => {
-                      // 입력이 비어있으면 자동으로 닫기
-                      if (!newTodoTexts[category]?.trim()) {
-                        setShowInputForCategory({
-                          ...showInputForCategory,
-                          [category]: false,
-                        });
-                      }
-                    }}
-                    className="w-full p-2 bg-[#0f1624] border border-cyan-500/30 rounded-xl text-cyan-100 placeholder-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400"
-                    style={{ boxShadow: "inset 0 2px 4px rgba(0, 0, 0, 0.2)" }}
-                    autoFocus
-                  />
+                      onKeyPress={(e) => {
+                        if (e.key === "Enter") {
+                          handleAddTodo(category);
+                        } else if (e.key === "Escape") {
+                          setShowInputForCategory({
+                            ...showInputForCategory,
+                            [category]: false,
+                          });
+                          setNewTodoTexts({
+                            ...newTodoTexts,
+                            [category]: "",
+                          });
+                        }
+                      }}
+                      onBlur={() => {
+                        // 입력이 비어있으면 자동으로 닫기
+                        if (!newTodoTexts[category]?.trim()) {
+                          setShowInputForCategory({
+                            ...showInputForCategory,
+                            [category]: false,
+                          });
+                        }
+                      }}
+                      className="w-full p-2 pr-24 bg-[#0f1624] border border-cyan-500/30 rounded-xl text-cyan-100 placeholder-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400"
+                      style={{ boxShadow: "inset 0 2px 4px rgba(0, 0, 0, 0.2)" }}
+                      autoFocus
+                    />
+
+                    {/* ✅ 입력이 있을 때 오른쪽에 연한 안내 텍스트 표시 */}
+                    {newTodoTexts[category]?.trim() && (
+                      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-cyan-400/60">
+                        Enter로 저장
+                      </span>
+                    )}
+                  </div>
                 )}
+
               </div>
             </div>
           );
