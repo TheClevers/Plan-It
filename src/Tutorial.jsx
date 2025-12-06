@@ -3,6 +3,11 @@ import { useState } from "react";
 import tutorial1 from "./assets/tutorial/tutorial1.png";
 import tutorial2 from "./assets/tutorial/tutorial2.png";
 import tutorial3 from "./assets/tutorial/tutorial3.png";
+import tutorial4 from "./assets/tutorial/tutorial4.png";
+import tutorial5 from "./assets/tutorial/tutorial5.png";
+import tutorial6 from "./assets/tutorial/tutorial6.png";
+import tutorial7 from "./assets/tutorial/tutorial7.png";
+import tutorial8 from "./assets/tutorial/tutorial8.png";
 import logo from "./assets/Logo.png"
 export default function Tutorial() {
   const navigate = useNavigate();
@@ -11,10 +16,15 @@ export default function Tutorial() {
     "지금은 우주 개발 시대, 무한 경쟁 지구에 지쳤다...",
     "이젠 지구를 벗어날 때. 나만의 행성을 찾으러 떠나야겠다.",
     "이삿짐 준비, 로켓 준비 완료!",
-    "우주 항해를 출발합니다. 당신만의 행성들이 기다리고 있습니다!"
+    "우주 항해를 출발합니다. 당신만의 행성들이 기다리고 있습니다!",
+    "우주 개발 환경에 접속하신 걸 환영합니다.",
+    "할 일 카테고리를 입력하면 행성으로 나타나요!",
+    "행성 안에 할 일은 적어보세요!",
+    "할 일이 완료되었다면 체크하고 버튼을 누르면 행성이 개발됩니다!",
+    "자신만의 행성을 키워보세요!"
   ];
 
-  const images = [tutorial1, tutorial2, tutorial2, tutorial3];
+  const images = [tutorial1, tutorial2, tutorial2, tutorial3, tutorial4, tutorial5, tutorial6, tutorial7, tutorial8];
 
   const [step, setStep] = useState(0);
   const [started, setStarted] = useState(false);
