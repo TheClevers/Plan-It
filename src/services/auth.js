@@ -1,19 +1,19 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 
+// API 기본 URL (환경 변수에서 가져오기)
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 // 로그인 API 함수
 const loginAPI = async (credentials) => {
   const { username, password } = credentials;
 
-  const response = await fetch(
-    "https://plan-it-backend-fyd2.onrender.com/auth/login",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ username, password }),
-    }
-  );
+  const response = await fetch(`${API_BASE_URL}/auth/login`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ username, password }),
+  });
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -66,16 +66,13 @@ export const useAuthStatus = () => {
 const signupAPI = async (credentials) => {
   const { username, password } = credentials;
 
-  const response = await fetch(
-    "https://plan-it-backend-fyd2.onrender.com/auth/signup",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ username, password }),
-    }
-  );
+  const response = await fetch(`${API_BASE_URL}/auth/signup`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ username, password }),
+  });
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
