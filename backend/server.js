@@ -11,7 +11,7 @@ const app = express();
 app.use(cors({
   origin: [
     "http://localhost:5173",
-    "https://plan-it-dkbz.onrender.com"
+    "https://plan-it-origin-backend.onrender.com"
   ],
   methods: ["GET", "POST", "PUT", "DELETE"],
 }));
