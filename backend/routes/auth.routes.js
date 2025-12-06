@@ -16,17 +16,15 @@ const SALT_ROUNDS = 12;
 // ============================
 router.post("/signup", async (req, res) => {
   try {
-    const { user_id, username, password } = req.body;
+    const { username, password } = req.body;
 
     // 1️⃣ Validation
-    if (!user_id || !username || !password) {
+    if (!username || !password) {
       return res.status(400).json({ error: "user_id, username, and password are required" });
     }
 
     // 2️⃣ Check duplicate user
-    const existing = await User.findOne({
-      $or: [{ user_id }, { username }],
-    });
+    const existing = await User.findOne({username});
 
     if (existing) {
       return res.status(409).json({ error: "User ID or username already exists" });
@@ -37,7 +35,6 @@ router.post("/signup", async (req, res) => {
 
     // 4️⃣ Save user
     const user = new User({
-      user_id: user_id.trim(),
       username: username.trim(),
       password: hashedPassword,
     });
