@@ -7,8 +7,22 @@ const router = express.Router();
 router.get("/", async (req, res) => {
   try {
     const planets = await Planet.find();
-    res.json(planets);
-  } catch (err) {
+
+    const formattedPlanets = planets.map((planet) => {
+      const planetObj = planet.toObject();
+
+      return {
+        ...planetObj,
+        image: planet.image
+          ? planet.image.toString("base64") // ✅ Buffer -> Base64
+          : null,
+      };
+    });
+
+    res.json(formattedPlanets);
+  } 
+  catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Failed to fetch planets" });
   }
 });
@@ -16,67 +30,122 @@ router.get("/", async (req, res) => {
 // GET a single planet by ID
 router.get("/:id", async (req, res) => {
   try {
-    const planet = await Planet.findById(req.params.id);
+    const planet = await Planet.findOne({planet_id: req.params.id});
     if (!planet) return res.status(404).json({ error: "Planet not found" });
-    res.json(planet);
-  } catch (err) {
+    const response = {
+      ...planet.toObject(),
+      image: planet.image ? planet.image.toString("base64") : null,
+    };
+    res.json(response);
+  } 
+  catch (err) {
     res.status(500).json({ error: "Failed to fetch planet" });
   }
 });
 
 //GET compeleted tasks for single Planet
-router.get("/:id/completed", async (req, res) => {
+router.get("/:id/jobs_done", async (req, res) => {
   try {
-    const planet = await Planet.findById(req.params.id).select("completedTodos");
+    const planet = await Planet.findOne({planet_id: req.params.id}).select("jobs_done");
     if (!planet) return res.status(404).json({ error: "Planet not found" });
-    res.json(planet.completedTodos);
+    res.json(planet.jobs_done);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch completed todos" });
   }
 });
 
-// CREATE a new planet
+// ADD new planet (BASE64 -> Buffer)
 router.post("/", async (req, res) => {
   try {
-    const {category, clientId} = req.body;
-     if (!category||!category.trim()) {
-      return res.status(400).json({ error: "Image and category are required" });
+        if (!req.body || typeof req.body !== "object") {
+      return res.status(400).json({ error: "Request body is missing" });
     }
 
-    // Check duplicate category
-    const exists = await Planet.findOne({ category });
+    const {
+      planet_id,
+      name,
+      image,         
+      introduction,
+      population,
+      major_industry,
+      specifics,
+      user_id,       
+    } = req.body;
+
+    if (!planet_id || !planet_id.trim()) {
+      return res.status(400).json({ error: "Planet id is required" });
+    }
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: "Planet name is required" });
+    }
+
+    if (!user_id || !user_id.trim()) {
+      return res.status(400).json({ error: "user_id is required" });
+    }
+
+    const cleanName = name.trim();
+    const cleanUserId = user_id.trim();
+
+    const exists = await Planet.findOne({ name: cleanName });
     if (exists) {
-      return res.status(409).json({ error: "Category already exists" });
+      return res.status(409).json({ error: "Planet name already exists" });
     }
 
+    let imageBuffer = null;
+    if (image) {
+      try {
+        imageBuffer = Buffer.from(image, "base64");
+      } catch (err) {
+        return res.status(400).json({ error: "Invalid base64 image format" });
+      }
+      const MAX_IMAGE_SIZE = 10_000_000; // 10MB
+      if (imageBuffer.length > MAX_IMAGE_SIZE) {
+        return res
+          .status(400)
+          .json({ error: "Image too large. Max size is 10MB." });
+      }
+    }
 
-    const planet = new Planet({ image: null , category: category.trim(), color:"#ffffff", clientId });
+    const planet = new Planet({
+      planet_id: planet_id || null,
+      name: cleanName,
+      image: imageBuffer, 
+      introduction: introduction ? introduction.trim() : null,
+      population: population ? Number(population) : 0,
+      major_industry: major_industry ? major_industry.trim() : "NO INDUSTRY",
+      specifics: specifics ? specifics.trim() : "NO SPECIFICS",
+      jobs_done: [],
+      user_id: cleanUserId,
+    });
+
     await planet.save();
     res.status(201).json(planet);
-  } catch (err) {
+  } 
+  
+  catch (err) {
     console.error("Failed to create planet:", err);
-    res.status(500).json({ error: "Failed to create planet,", details: err.message});
+    res.status(500).json({
+      error: "Failed to create planet",
+      details: err.message,
+    });
   }
 });
 
-// UPDATE a planet
-//router.put("/:id", async (req, res) => {
-//  try {
-//    const updated = await Planet.findByIdAndUpdate(req.params.id, req.body, {
-//      new: true,
-//    });
-//    res.json(updated);
-//  } catch (err) {
-//    res.status(500).json({ error: "Failed to update planet" });
-//  }
-//});
-
-// UPDATE a planet
+//UPDATE planet
 router.put("/:id", async (req, res) => {
-  const allowedUpdates = ['text', 'category', 'completed'];
+  const allowedUpdates = [
+    "name",
+    "image",          // BASE64 -> Buffer
+    "introduction",
+    "population",
+    "major_industry",
+    "specifics",
+  ];
+
   const updates = {};
 
-  allowedUpdates.forEach(key => {
+  allowedUpdates.forEach((key) => {
     if (req.body[key] !== undefined) {
       updates[key] = req.body[key];
     }
@@ -87,50 +156,105 @@ router.put("/:id", async (req, res) => {
   }
 
   try {
-    const updatedTodo = await Todo.findByIdAndUpdate(
-      req.params.id,
-      updates,
+    if (updates.image) {
+      try {
+        const imageBuffer = Buffer.from(updates.image, "base64");
+        const MAX_IMAGE_SIZE = 10_000_000;
+        if (imageBuffer.length > MAX_IMAGE_SIZE) {
+          return res.status(400).json({
+            error: "Image too large. Max size is 10MB.",
+          });
+        }
+
+        updates.image = imageBuffer;
+      } catch (err) {
+        return res.status(400).json({
+          error: "Invalid base64 image format",
+        });
+      }
+    }
+
+    if (updates.name) updates.name = updates.name.trim();
+    if (updates.introduction) updates.introduction = updates.introduction.trim();
+    if (updates.major_industry) updates.major_industry = updates.major_industry.trim();
+    if (updates.specifics) updates.specifics = updates.specifics.trim();
+    if (updates.population !== undefined) {
+      updates.population = Number(updates.population);
+    }
+
+    const updatedPlanet = await Planet.findOneAndUpdate(
+      {planet_id: req.params.id},     
+      { $set: updates }, 
       { new: true, runValidators: true }
     );
 
-    if (!updatedTodo) {
-      return res.status(404).json({ error: "Todo not found" });
+    if (!updatedPlanet) {
+      return res.status(404).json({ error: "Planet not found" });
     }
 
-    res.json(updatedTodo);
+    res.json(updatedPlanet);
   } catch (err) {
-    res.status(500).json({ error: "Update failed" });
+    console.error("Update failed:", err);
+    res.status(500).json({ error: "Update failed", details: err.message });
   }
 });
 
-//POST completed tasks
-router.post("/:id/completed", async (req, res) => {
+//POST completed tasks to a planet (jobs_done)
+router.post("/:id/jobs_done", async (req, res) => {
   try {
     const { tasks } = req.body; 
-    // tasks = [{ text, category, completedAt }, ...]
+    // Expected format:
+    // tasks = [{ todo_name, completed_at?, user_id? }, ...]
 
+    // 1. Validate tasks array
     if (!Array.isArray(tasks) || tasks.length === 0) {
-      return res.status(400).json({ error: "Tasks array required" });
+      return res.status(400).json({ error: "Tasks array is required" });
     }
 
-    const planet = await Planet.findById(req.params.id);
-    if (!planet) return res.status(404).json({ error: "Planet not found" });
+    // 2. Find planet by custom planet_id
+    const planet = await Planet.findOne({ planet_id: req.params.id });
+    if (!planet) {
+      return res.status(404).json({ error: "Planet not found" });
+    }
 
-    // Push tasks
-    planet.completedTodos.push(...tasks);
+    // 3. Validate & format tasks for jobDoneSchema
+    const formattedTasks = tasks.map(task => {
+      if (!task.todo_name || !task.todo_name.trim()) {
+        throw new Error("Each task must have a valid todo_name");
+      }
 
+      return {
+        todo_name: task.todo_name.trim(),
+        completed_at: task.completed_at ? new Date(task.completed_at) : new Date(),
+        user_id: task.user_id || planet.user_id, // fallback to planet owner
+      };
+    });
+
+    // 4. Push into jobs_done (correct field)
+    planet.jobs_done.push(...formattedTasks);
+
+    // 5. Save
     await planet.save();
-    res.json({ success: true, completedTodos: planet.completedTodos });
+
+    // 6. Respond with updated jobs_done
+    res.json({
+      success: true,
+      jobs_done: planet.jobs_done,
+    });
 
   } catch (err) {
-    res.status(500).json({ error: "Failed to add completed todos" });
+    console.error("Failed to add jobs_done:", err);
+    res.status(500).json({
+      error: "Failed to add completed tasks",
+      details: err.message,
+    });
   }
 });
 
 // DELETE a planet
 router.delete("/:id", async (req, res) => {
   try {
-    await Planet.findByIdAndDelete(req.params.id);
+    await Planet.findOneAndDelete({planet_id: req.params.id});
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: "Failed to delete planet" });
