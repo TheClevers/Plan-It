@@ -353,22 +353,6 @@ function App() {
     // 궤도/행성 렌더링에서 쓸 수 있도록 상태로 저장
     setSunCenter({ x: sunCenterX, y: sunCenterY });
 
-    // 모든 고정 위치에 기본 행성 배치
-    const fixedPositions = getFixedPositions(sunCenterX, sunCenterY);
-    const defaultCategories = fixedPositions.map((pos) => ({
-      name: `위치${pos.index}`,
-      description: "",
-    }));
-
-    // 기본 카테고리들을 categories에 추가 (중복 방지)
-    setCategories((prev) => {
-      const existingNames = new Set(prev.map((c) => c.name));
-      const newCategories = defaultCategories.filter(
-        (c) => !existingNames.has(c.name)
-      );
-      return newCategories.length > 0 ? [...prev, ...newCategories] : prev;
-    });
-
     if (allCategories.length === 0) return;
 
     // 카테고리 목록을 정렬하여 문자열로 변환하여 비교
