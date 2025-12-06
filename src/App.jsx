@@ -25,6 +25,135 @@ const PLANET_EXIST_ANGLE = Math.PI / 12; // 행성이 태양으로부터 존재�
 const MAXIMUM_PLANET_SIZE = 150;
 const MINIMUM_PLANET_SIZE = 80;
 
+// 고정된 궤도 반지름 (최대 5개)
+const FIXED_ORBIT_RADII = [350, 500, 750, 1000, 1250];
+
+// 각 궤도마다 고정된 각도 위치들 (라디안)
+// 각 궤도마다 다른 수의 위치를 가질 수 있음
+const FIXED_ANGLES_PER_ORBIT = {
+  350: [
+    0,
+    Math.PI / 4,
+    Math.PI / 2,
+    (3 * Math.PI) / 4,
+    Math.PI,
+    (5 * Math.PI) / 4,
+    (3 * Math.PI) / 2,
+    (7 * Math.PI) / 4,
+  ], // 8개
+  500: [
+    0,
+    Math.PI / 6,
+    Math.PI / 3,
+    Math.PI / 2,
+    (2 * Math.PI) / 3,
+    (5 * Math.PI) / 6,
+    Math.PI,
+    (7 * Math.PI) / 6,
+    (4 * Math.PI) / 3,
+    (3 * Math.PI) / 2,
+    (5 * Math.PI) / 3,
+    (11 * Math.PI) / 6,
+  ], // 12개
+  750: [
+    0,
+    Math.PI / 4,
+    Math.PI / 2,
+    (3 * Math.PI) / 4,
+    Math.PI,
+    (5 * Math.PI) / 4,
+    (3 * Math.PI) / 2,
+    (7 * Math.PI) / 4,
+  ], // 8개
+  1000: [
+    0,
+    Math.PI / 6,
+    Math.PI / 3,
+    Math.PI / 2,
+    (2 * Math.PI) / 3,
+    (5 * Math.PI) / 6,
+    Math.PI,
+    (7 * Math.PI) / 6,
+    (4 * Math.PI) / 3,
+    (3 * Math.PI) / 2,
+    (5 * Math.PI) / 3,
+    (11 * Math.PI) / 6,
+  ], // 12개
+  1250: [
+    0,
+    Math.PI / 4,
+    Math.PI / 2,
+    (3 * Math.PI) / 4,
+    Math.PI,
+    (5 * Math.PI) / 4,
+    (3 * Math.PI) / 2,
+    (7 * Math.PI) / 4,
+  ], // 8개
+};
+
+// 고정 위치들을 생성하는 함수
+function getFixedPositions(sunCenterX, sunCenterY) {
+  const positions = [];
+  let positionIndex = 1;
+  FIXED_ORBIT_RADII.forEach((radius) => {
+    const angles = FIXED_ANGLES_PER_ORBIT[radius] || [];
+    angles.forEach((angle) => {
+      const x = sunCenterX + Math.cos(angle) * radius;
+      const y = sunCenterY + Math.sin(angle) * radius;
+      positions.push({ radius, angle, x, y, index: positionIndex++ });
+    });
+  });
+  return positions;
+}
+
+// 주어진 반지름과 각도에 가장 가까운 고정 위치를 찾는 함수
+// occupiedPositions: 이미 배치된 행성들의 위치 배열
+function findNearestFixedPosition(
+  targetRadius,
+  targetAngle,
+  sunCenterX,
+  sunCenterY,
+  occupiedPositions = []
+) {
+  const fixedPositions = getFixedPositions(sunCenterX, sunCenterY);
+
+  // 사용 가능한 위치만 필터링 (이미 배치된 위치 제외)
+  const availablePositions = fixedPositions.filter((pos) => {
+    return !occupiedPositions.some(
+      (occupied) =>
+        Math.abs(occupied.x - pos.x) < 10 && Math.abs(occupied.y - pos.y) < 10
+    );
+  });
+
+  // 사용 가능한 위치가 없으면 모든 위치에서 선택
+  const positionsToSearch =
+    availablePositions.length > 0 ? availablePositions : fixedPositions;
+
+  let nearest = null;
+  let minDistance = Infinity;
+
+  positionsToSearch.forEach((pos) => {
+    // 각도 차이 계산 (0 ~ 2π 범위로 정규화)
+    let angleDiff = Math.abs(targetAngle - pos.angle);
+    if (angleDiff > Math.PI) {
+      angleDiff = 2 * Math.PI - angleDiff;
+    }
+
+    // 반지름 차이와 각도 차이를 모두 고려한 거리
+    const radiusDiff = Math.abs(targetRadius - pos.radius);
+    const distance = Math.sqrt(
+      radiusDiff * radiusDiff + angleDiff * angleDiff * pos.radius * pos.radius
+    );
+
+    if (distance < minDistance) {
+      minDistance = distance;
+      nearest = pos;
+    }
+  });
+
+  return nearest;
+}
+
 function getWeightedRandomRadius() {
   const weights = PLANET_ORBIT_RADIUS_OPTION.map((_, i) => i + 1);
   const total = weights.reduce((a, b) => a + b, 0);
@@ -205,18 +334,7 @@ function App() {
 
   // 🌞 태양 기준으로 행성 위치 생성 (새 카테고리만 랜덤 각도 배치)
   useEffect(() => {
-    if (!containerRef.current || allCategories.length === 0) return;
-
-    // 카테고리 목록을 정렬하여 문자열로 변환하여 비교
-    const currentCategoriesString = [...allCategories].sort().join(",");
-
-    // 이전 카테고리와 동일하면 실행하지 않음 (무한 루프 방지)
-    if (prevCategoriesRef.current === currentCategoriesString) {
-      return;
-    }
-
-    // 현재 카테고리 목록 저장
-    prevCategoriesRef.current = currentCategoriesString;
+    if (!containerRef.current) return;
 
     const container = containerRef.current;
     const width = container.clientWidth;
@@ -235,6 +353,35 @@ function App() {
     // 궤도/행성 렌더링에서 쓸 수 있도록 상태로 저장
     setSunCenter({ x: sunCenterX, y: sunCenterY });
 
+    // 모든 고정 위치에 기본 행성 배치
+    const fixedPositions = getFixedPositions(sunCenterX, sunCenterY);
+    const defaultCategories = fixedPositions.map((pos) => ({
+      name: `위치${pos.index}`,
+      description: "",
+    }));
+
+    // 기본 카테고리들을 categories에 추가 (중복 방지)
+    setCategories((prev) => {
+      const existingNames = new Set(prev.map((c) => c.name));
+      const newCategories = defaultCategories.filter(
+        (c) => !existingNames.has(c.name)
+      );
+      return newCategories.length > 0 ? [...prev, ...newCategories] : prev;
+    });
+
+    if (allCategories.length === 0) return;
+
+    // 카테고리 목록을 정렬하여 문자열로 변환하여 비교
+    const currentCategoriesString = [...allCategories].sort().join(",");
+
+    // 이전 카테고리와 동일하면 실행하지 않음 (무한 루프 방지)
+    if (prevCategoriesRef.current === currentCategoriesString) {
+      return;
+    }
+
+    // 현재 카테고리 목록 저장
+    prevCategoriesRef.current = currentCategoriesString;
+
     setPlanetPositions((prev) => {
       // 이미 위치가 있는 카테고리는 그대로 두고,
       // 위치가 없는 새 카테고리만 랜덤으로 생성
@@ -247,57 +394,49 @@ function App() {
         return prev;
       }
 
+      // 이미 배치된 위치들 수집
+      const occupiedPositions = Object.values(next).map((pos) => ({
+        x: pos.x,
+        y: pos.y,
+      }));
+
       newCategories.forEach((category) => {
         const radius = getOrbitRadius(category);
+        // 랜덤 각도 (-PLANET_EXIST_ANGLE ~ +PLANET_EXIST_ANGLE)
+        const randomAngle =
+          Math.random() * (2 * PLANET_EXIST_ANGLE) - PLANET_EXIST_ANGLE;
 
-        let valid = false;
-        let angle = 0;
-        let attempt = 0;
-        const maxAttempts = 100; // 무한 루프 방지
+        // 가장 가까운 고정 위치 찾기 (이미 배치된 위치 제외)
+        const nearestFixed = findNearestFixedPosition(
+          radius,
+          randomAngle,
+          sunCenterX,
+          sunCenterY,
+          occupiedPositions
+        );
 
-        while (!valid && attempt < maxAttempts) {
-          // 랜덤 각도 (-PLANET_EXIST_ANGLE ~ +PLANET_EXIST_ANGLE)
-          angle = Math.random() * (2 * PLANET_EXIST_ANGLE) - PLANET_EXIST_ANGLE;
-
-          const newSize = getPlanetSize(category);
-          const newR = radius;
-
-          valid = true;
-
-          // 기존 행성들과 거리 검사
-          for (const otherCat in next) {
-            const other = next[otherCat];
-            const otherAngle = Math.atan2(
-              other.y - sunCenterY,
-              other.x - sunCenterX
-            );
-            const otherR = Math.sqrt(
-              Math.pow(other.x - sunCenterX, 2) +
-                Math.pow(other.y - sunCenterY, 2)
-            );
-
-            const dist = calDistance(newR, angle, otherR, otherAngle);
-            const minDist = (getPlanetSize(otherCat) + newSize) / 2 + 20; // 여유 간격
-
-            if (dist < minDist) {
-              valid = false;
-              break;
-            }
-          }
-
-          attempt++;
+        if (nearestFixed) {
+          // 고정 위치에 배치
+          next[category] = {
+            category,
+            x: nearestFixed.x,
+            y: nearestFixed.y,
+            radius: nearestFixed.radius,
+            angle: nearestFixed.angle,
+          };
+          // 배치된 위치를 occupiedPositions에 추가 (다음 행성 배치 시 참고)
+          occupiedPositions.push({ x: nearestFixed.x, y: nearestFixed.y });
+        } else {
+          // 고정 위치를 찾지 못한 경우 (예외 처리)
+          const x = sunCenterX + Math.cos(randomAngle) * radius;
+          const y = sunCenterY + Math.sin(randomAngle) * radius;
+          next[category] = { category, x, y };
         }
-
-        // 실패 시 그냥 마지막 값 사용
-        const x = sunCenterX + Math.cos(angle) * radius;
-        const y = sunCenterY + Math.sin(angle) * radius;
-
-        next[category] = { category, x, y };
       });
 
       return next;
     });
-  }, [allCategories, getPlanetSize]);
+  }, [allCategories, getPlanetSize, sunCenter]);
 
   const handleAddCategory = (categoryObj) => {
     // categoryObj는 { name: string, description?: string } 형태라고 가정
@@ -655,6 +794,69 @@ function App() {
               }}
             />
           ))}
+
+          {/* 고정 위치 표시 (반투명한 원 + 번호) */}
+          {sunCenter.x !== 0 &&
+            sunCenter.y !== 0 &&
+            getFixedPositions(sunCenter.x, sunCenter.y).map((pos, index) => {
+              // 이미 행성이 배치된 위치인지 확인
+              const isOccupied = Object.values(planetPositions).some(
+                (planetPos) =>
+                  Math.abs(planetPos.x - pos.x) < 10 &&
+                  Math.abs(planetPos.y - pos.y) < 10
+              );
+
+              return (
+                <div
+                  key={`fixed-${pos.radius}-${pos.angle}-${index}`}
+                  className="absolute pointer-events-none"
+                  style={{
+                    left: `${pos.x}px`,
+                    top: `${pos.y}px`,
+                    transform: "translate(-50%, -50%)",
+                    zIndex: 5,
+                  }}
+                >
+                  {/* 반투명한 원 */}
+                  <div
+                    className="absolute rounded-full"
+                    style={{
+                      width: `${MINIMUM_PLANET_SIZE}px`,
+                      height: `${MINIMUM_PLANET_SIZE}px`,
+                      left: "50%",
+                      top: "50%",
+                      transform: "translate(-50%, -50%)",
+                      border: isOccupied
+                        ? "3px solid rgba(100, 200, 100, 0.9)"
+                        : "3px solid rgba(255, 255, 255, 0.9)",
+                      backgroundColor: isOccupied
+                        ? "rgba(100, 200, 100, 0.4)"
+                        : "rgba(255, 255, 255, 0.4)",
+                      boxShadow: isOccupied
+                        ? "0 0 15px rgba(100, 200, 100, 0.8)"
+                        : "0 0 15px rgba(255, 255, 255, 0.8)",
+                    }}
+                  />
+                  {/* 번호 표시 */}
+                  <div
+                    className="absolute text-white font-bold text-center flex items-center justify-center"
+                    style={{
+                      width: `${MINIMUM_PLANET_SIZE}px`,
+                      height: `${MINIMUM_PLANET_SIZE}px`,
+                      left: "50%",
+                      top: "50%",
+                      transform: "translate(-50%, -50%)",
+                      fontSize: "20px",
+                      textShadow:
+                        "0 0 4px rgba(0, 0, 0, 0.8), 0 0 8px rgba(0, 0, 0, 0.6)",
+                      zIndex: 6,
+                    }}
+                  >
+                    {pos.index}
+                  </div>
+                </div>
+              );
+            })}
 
           {/* 행성들 */}
           {allCategories.map((category) => {
