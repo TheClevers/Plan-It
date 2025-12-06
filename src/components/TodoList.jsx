@@ -156,7 +156,7 @@ export default function TodoList({
     setIsPlanetModalOpen(false);
   };
 
-  const checkedCount = todos.filter((todo) => todo.completed).length;
+  const checkedCount = todos.filter((todo) => todo.checked).length;
 
   return (
     <div
@@ -356,7 +356,7 @@ export default function TodoList({
                       >
                         <input
                           type="checkbox"
-                          checked={todo.completed}
+                          checked={todo.checked}
                           onChange={() => onToggleTodo(todo.id)}
                           className="cursor-pointer"
                           onClick={(e) => e.stopPropagation()}
@@ -364,12 +364,12 @@ export default function TodoList({
                         />
                         <span
                           className={`text-cyan-100 flex-1 ${
-                            todo.completed
+                            todo.checked
                               ? "line-through opacity-40 text-cyan-500"
                               : ""
                           }`}
                           style={{
-                            textShadow: todo.completed
+                            textShadow: todo.checked
                               ? "none"
                               : "0 0 4px rgba(80, 200, 255, 0.3)",
                           }}
@@ -440,7 +440,7 @@ export default function TodoList({
                   )}
 
                 {/* 새 할 일 입력 - + 버튼을 눌렀을 때만 표시 */}
-               {showInputForCategory[category] && (
+                {showInputForCategory[category] && (
                   <div className="relative">
                     <input
                       id={`todo-input-${category}`}
@@ -477,7 +477,9 @@ export default function TodoList({
                         }
                       }}
                       className="w-full p-2 pr-24 bg-[#0f1624] border border-cyan-500/30 rounded-xl text-cyan-100 placeholder-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400"
-                      style={{ boxShadow: "inset 0 2px 4px rgba(0, 0, 0, 0.2)" }}
+                      style={{
+                        boxShadow: "inset 0 2px 4px rgba(0, 0, 0, 0.2)",
+                      }}
                       autoFocus
                     />
 
@@ -489,7 +491,6 @@ export default function TodoList({
                     )}
                   </div>
                 )}
-
               </div>
             </div>
           );

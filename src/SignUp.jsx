@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Logo from "./assets/Logo.png";
+import { useSignup } from "./services/auth";
 
 export default function SignUp() {
   const [id, setId] = useState("");
@@ -8,15 +9,31 @@ export default function SignUp() {
   const [confirmPw, setConfirmPw] = useState("");
   const navigate = useNavigate();
 
-  const handleSubmit = () => {
-    // API 연동 전이므로 내용만 채워져 있으면 바로 이동
+  // useSignup 훅 사용
+  const signupMutation = useSignup();
+
+  const handleSubmit = async () => {
     if (id.trim() !== "" && pw.trim() !== "" && confirmPw.trim() !== "") {
       if (pw !== confirmPw) {
         alert("비밀번호가 일치하지 않습니다.");
         return;
       }
-      // 나중에 API 연동할 예정이므로 지금은 바로 이동
-      navigate("/tutorial");
+
+      try {
+        // 회원가입 mutation 실행
+        const result = await signupMutation.mutateAsync({
+          username: id.trim(),
+          password: pw.trim(),
+        });
+
+        // 회원가입 성공 시 튜토리얼 페이지로 이동
+        if (result) {
+          navigate("/tutorial");
+        }
+      } catch (error) {
+        // 에러 처리 (이미 useSignup에서 처리되지만 필요시 추가 처리 가능)
+        alert(error.message || "회원가입에 실패했습니다. 다시 시도해주세요.");
+      }
     } else {
       alert("모든 항목을 입력해주세요.");
     }
@@ -25,9 +42,11 @@ export default function SignUp() {
   return (
     <div className="w-full h-screen space-background flex items-center justify-center relative">
       {/* 회원가입 카드 */}
-      <div className="bg-[rgba(15,20,35,0.75)] text-white w-[360px] p-8 rounded-2xl 
+      <div
+        className="bg-[rgba(15,20,35,0.75)] text-white w-[360px] p-8 rounded-2xl 
                       shadow-[0_0_20px_rgba(0,200,255,0.15)]
-                      backdrop-blur-md flex flex-col items-center">
+                      backdrop-blur-md flex flex-col items-center"
+      >
         {/* 로고 */}
         <img
           src={Logo}
@@ -76,10 +95,13 @@ export default function SignUp() {
         {/* 회원가입 버튼 */}
         <button
           onClick={handleSubmit}
+          disabled={signupMutation.isPending}
           className="
             w-full 
             bg-[#1fb8d6]
             hover:bg-[#33c7e6]
+            disabled:bg-gray-400
+            disabled:cursor-not-allowed
             text-black 
             font-bold 
             py-2 
@@ -89,8 +111,15 @@ export default function SignUp() {
             shadow-[0_0_4px_rgb(31,184,214)]
           "
         >
-          Sign Up
+          {signupMutation.isPending ? "회원가입 중..." : "Sign Up"}
         </button>
+
+        {/* 에러 메시지 표시 */}
+        {signupMutation.isError && (
+          <div className="text-red-400 text-sm mt-2">
+            {signupMutation.error?.message || "회원가입에 실패했습니다."}
+          </div>
+        )}
 
         {/* 로그인으로 돌아가기 */}
         <button
@@ -103,4 +132,3 @@ export default function SignUp() {
     </div>
   );
 }
-
