@@ -57,23 +57,6 @@ function calDistance(r1, theta1, r2, theta2) {
   return Math.sqrt(r1 * r1 + r2 * r2 - 2 * r1 * r2 * Math.cos(theta1 - theta2));
 }
 
-// 카테고리만 변수로 들어가는 행성 이미지 프롬프트
-function buildPlanetPrompt(category) {
-  return `
-Generate a 2D, outlineless, casual cel-shaded planet illustration with a vibrant style.
-The planet's theme is defined by a keyword (e.g., "Cleaning Planet", "Study Planet").
-The keyword is: "${category}".
-
-Arrange elements relevant to the keyword directly on the planet's surface to reflect the theme.
-Ensure a solid #000000 (pure black) background.
-
-Absolutely no outlines, watermarks, alphabets, or any kind of language text/letters are allowed in the generated image.
-Avoid realistic facial features on creature/pet planets; use stylized, deformed features only.
-Do not generate in 3D style.
-`.trim();
-}
-
-
 // 행성 상태 메시지 생성 함수
 // ======================
 function getMessage(planet) {
@@ -87,32 +70,31 @@ function getMessage(planet) {
   const daysSinceUpgrade =
     (now - new Date(planet.lastUpgradeTime)) / 1000 / 60 / 60 / 24;
 
-// 1) 즉시 반응 메시지
-if (planet.recentBatchCount >= 3) return "⚡ 와! 발전이 아주 빠른데?";
-if (planet.taskCountLast24h === 1) return "🌅 오늘의 첫 번째 업적 달성!";
-if (planet.recentFastActions >= 2) return "🔥 열정이 대단한데?";
+  // 1) 즉시 반응 메시지
+  if (planet.recentBatchCount >= 3) return "⚡ 와! 발전이 아주 빠른데?";
+  if (planet.taskCountLast24h === 1) return "🌅 오늘의 첫 번째 업적 달성!";
+  if (planet.recentFastActions >= 2) return "🔥 열정이 대단한데?";
 
-// 2) 성장 관련 메시지
-if (planet.population >= 30000) return "🏙 너무 좁아!";
-if (planet.population >= 12000) return "🌎 행성이 꽤 살아나는걸?";
+  // 2) 성장 관련 메시지
+  if (planet.population >= 30000) return "🏙 너무 좁아!";
+  if (planet.population >= 12000) return "🌎 행성이 꽤 살아나는걸?";
 
-// 3) 생산성 / 활동 메시지
-if (minsSince <= 10) return "🌱 무럭무럭 자라는군!";
-if (planet.avgTaskTime <= 10) return "🎉 생산성이 최고야!";
+  // 3) 생산성 / 활동 메시지
+  if (minsSince <= 10) return "🌱 무럭무럭 자라는군!";
+  if (planet.avgTaskTime <= 10) return "🎉 생산성이 최고야!";
 
-// 4) 너무 조용함
-if (planet.taskCountLast24h === 0 && minsSince > 10)
-  return "😴 너무 조용해...";
+  // 4) 너무 조용함
+  if (planet.taskCountLast24h === 0 && minsSince > 10)
+    return "😴 너무 조용해...";
 
-// 5) 업그레이드 필요
-if (daysSinceUpgrade >= 30) return "🔧 업그레이드가 필요해!";
+  // 5) 업그레이드 필요
+  if (daysSinceUpgrade >= 30) return "🔧 업그레이드가 필요해!";
 
-// 6) 장기 방치
-if (daysSince >= 7) return "🌋 지금 행성 관리가 안되고 있어!";
+  // 6) 장기 방치
+  if (daysSince >= 7) return "🌋 지금 행성 관리가 안되고 있어!";
 
-// 7) 기본
-return "🪐 행성을 키워보자!";
-
+  // 7) 기본
+  return "🪐 행성을 키워보자!";
 }
 
 function App() {
@@ -246,6 +228,10 @@ function App() {
     loadPlanets();
   }, []);
 
+  useEffect(() => {
+    console.log("planetInfo", planetInfo);
+  }, [planetInfo]);
+
   // 할 일 목록 로드 (행성 정보 로드 후)
   useEffect(() => {
     const loadTodos = async () => {
@@ -362,11 +348,9 @@ function App() {
     return Array.from(
       new Set([
         ...categories.map((c) => c.name), // 객체에서 이름만 추출
-        ...todos.map((t) => t.category),
-        ...completedTasks.map((t) => t.category),
       ])
     ).filter(Boolean);
-  }, [categories, todos, completedTasks]);
+  }, [categories]);
 
   // 행성 별 메시지
   const planetStatusMap = useMemo(() => {
@@ -405,9 +389,8 @@ function App() {
   }, [allCategories, completedTasks]);
 
   // 말풍선 자동 순환
-const [currentHintIndex, setCurrentHintIndex] = useState(0);
-const [isHintVisible, setIsHintVisible] = useState(true);
-
+  const [currentHintIndex, setCurrentHintIndex] = useState(0);
+  const [isHintVisible, setIsHintVisible] = useState(true);
 
   // 말풍선 자동 순환
   useEffect(() => {
@@ -438,7 +421,6 @@ const [isHintVisible, setIsHintVisible] = useState(true);
       clearTimeout(hiddenTimer);
     };
   }, [allCategories]);
-
 
   // 궤도 반지름 목록 (중복 제거)
   const uniqueRadii = useMemo(() => {
@@ -1092,16 +1074,6 @@ const [isHintVisible, setIsHintVisible] = useState(true);
         className="w-full h-full space-background relative overflow-auto p-10"
         style={{ minHeight: "100vh" }}
       >
-        {/* TodoList 토글 컨트롤 */}
-        {/* <div className="absolute top-5 left-5 z-50">
-          <img
-            src="/favicon.png"
-            alt="todo list button"
-            className="w-12 h-12"
-            draggable={false}
-          />
-        </div> */}
-
         {/* TodoList 컨테이너 - 접는 버튼 포함 */}
         <div
           className={`absolute top-1/2 left-5 -translate-y-1/2 z-40 transition-all duration-300 flex items-center ${
@@ -1205,15 +1177,16 @@ const [isHintVisible, setIsHintVisible] = useState(true);
             const isClicked = clickedPlanetCategories.has(category);
             const planetData = planetStatusMap[category];
 
-  // 자동 순환 인덱스와 비교해서 자동 말풍선 띄움
-  const planetIndex = allCategories.indexOf(category);
-  const showAutoHint = isHintVisible && planetIndex === currentHintIndex;
+            // 자동 순환 인덱스와 비교해서 자동 말풍선 띄움
+            const planetIndex = allCategories.indexOf(category);
+            const showAutoHint =
+              isHintVisible && planetIndex === currentHintIndex;
 
-  // 클릭이거나 자동 중 하나라도 true면 말풍선 표시
-  const showHint = isClicked || showAutoHint;
+            // 클릭이거나 자동 중 하나라도 true면 말풍선 표시
+            const showHint = isClicked || showAutoHint;
 
-  // 최종 메시지
-  const statusMessage = getMessage(planetData);
+            // 최종 메시지
+            const statusMessage = getMessage(planetData);
 
             return (
               <div
@@ -1233,43 +1206,43 @@ const [isHintVisible, setIsHintVisible] = useState(true);
                 />
 
                 {/* 말풍선 */}
-              {showHint && (
-                <div
-                  className="absolute z-50 text-black text-sm px-4 py-2 rounded shadow"
-                  style={{
-                    top: `-15px`,
-                    left: "50%",
-                    transform: "translate(-50%, -100%)",
-                    backgroundColor: "white",
-                    padding: "4px 8px",
-                    borderRadius: "6px",
-                    boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
-                    whiteSpace: "nowrap",
-                    minWidth: "140px",
-                    maxWidth: "240px",
-                    textAlign: "center",
-                    lineHeight: "1.4",
-                    position: "absolute",
-                  }}
-                >
-                  {statusMessage}
-
-                  {/* 꼬리 */}
+                {showHint && (
                   <div
+                    className="absolute z-50 text-black text-sm px-4 py-2 rounded shadow"
                     style={{
-                      position: "absolute",
-                      top: "100%",
+                      top: `-15px`,
                       left: "50%",
-                      transform: "translateX(-50%)",
-                      width: 0,
-                      height: 0,
-                      borderLeft: "8px solid transparent",
-                      borderRight: "8px solid transparent",
-                      borderTop: "8px solid white",
+                      transform: "translate(-50%, -100%)",
+                      backgroundColor: "white",
+                      padding: "4px 8px",
+                      borderRadius: "6px",
+                      boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
+                      whiteSpace: "nowrap",
+                      minWidth: "140px",
+                      maxWidth: "240px",
+                      textAlign: "center",
+                      lineHeight: "1.4",
+                      position: "absolute",
                     }}
-                  />
-                </div>
-              )}
+                  >
+                    {statusMessage}
+
+                    {/* 꼬리 */}
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: "100%",
+                        left: "50%",
+                        transform: "translateX(-50%)",
+                        width: 0,
+                        height: 0,
+                        borderLeft: "8px solid transparent",
+                        borderRight: "8px solid transparent",
+                        borderTop: "8px solid white",
+                      }}
+                    />
+                  </div>
+                )}
               </div>
             );
           })}
@@ -1277,10 +1250,10 @@ const [isHintVisible, setIsHintVisible] = useState(true);
       </div>
 
       {/* LLM 채팅 (우측 하단 floating) */}
-      <LLMChat />
+      {/* <LLMChat /> */}
 
       {/* 이미지 생성 (우측 하단 floating, LLM 채팅 옆) */}
-      <ImageGenerator />
+      {/* <ImageGenerator /> */}
 
       {/* 행성 정보 모달들 */}
       {Array.from(clickedPlanetCategories).map((category) => {
