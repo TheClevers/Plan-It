@@ -1,5 +1,5 @@
 import express from "express";
-import Planet from "../models/Planet.js"; 
+import Planet from "../models/Planet.js";
 
 const router = express.Router();
 
@@ -20,8 +20,7 @@ router.get("/", async (req, res) => {
     });
 
     res.json(formattedPlanets);
-  } 
-  catch (err) {
+  } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to fetch planets" });
   }
@@ -30,15 +29,14 @@ router.get("/", async (req, res) => {
 // GET a single planet by ID
 router.get("/:id", async (req, res) => {
   try {
-    const planet = await Planet.findOne({planet_id: req.params.id});
+    const planet = await Planet.findOne({ planet_id: req.params.id });
     if (!planet) return res.status(404).json({ error: "Planet not found" });
     const response = {
       ...planet.toObject(),
       image: planet.image ? planet.image.toString("base64") : null,
     };
     res.json(response);
-  } 
-  catch (err) {
+  } catch (err) {
     res.status(500).json({ error: "Failed to fetch planet" });
   }
 });
@@ -46,7 +44,9 @@ router.get("/:id", async (req, res) => {
 //GET compeleted tasks for single Planet
 router.get("/:id/jobs_done", async (req, res) => {
   try {
-    const planet = await Planet.findOne({planet_id: req.params.id}).select("jobs_done");
+    const planet = await Planet.findOne({ planet_id: req.params.id }).select(
+      "jobs_done"
+    );
     if (!planet) return res.status(404).json({ error: "Planet not found" });
     res.json(planet.jobs_done);
   } catch (err) {
@@ -57,19 +57,19 @@ router.get("/:id/jobs_done", async (req, res) => {
 // ADD new planet (BASE64 -> Buffer)
 router.post("/", async (req, res) => {
   try {
-        if (!req.body || typeof req.body !== "object") {
+    if (!req.body || typeof req.body !== "object") {
       return res.status(400).json({ error: "Request body is missing" });
     }
 
     const {
       planet_id,
       name,
-      image,         
+      image,
       introduction,
       population,
       major_industry,
       specifics,
-      user_id,       
+      username,
     } = req.body;
 
     if (!planet_id || !planet_id.trim()) {
@@ -80,12 +80,12 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ error: "Planet name is required" });
     }
 
-    if (!user_id || !user_id.trim()) {
-      return res.status(400).json({ error: "user_id is required" });
+    if (!username || !username.trim()) {
+      return res.status(400).json({ error: "username is required" });
     }
 
     const cleanName = name.trim();
-    const cleanUserId = user_id.trim();
+    const cleanUsername = username.trim();
 
     const exists = await Planet.findOne({ name: cleanName });
     if (exists) {
@@ -110,20 +110,18 @@ router.post("/", async (req, res) => {
     const planet = new Planet({
       planet_id: planet_id || null,
       name: cleanName,
-      image: imageBuffer, 
+      image: imageBuffer,
       introduction: introduction ? introduction.trim() : null,
       population: population ? Number(population) : 0,
       major_industry: major_industry ? major_industry.trim() : "NO INDUSTRY",
       specifics: specifics ? specifics.trim() : "NO SPECIFICS",
       jobs_done: [],
-      user_id: cleanUserId,
+      username: cleanUsername,
     });
 
     await planet.save();
     res.status(201).json(planet);
-  } 
-  
-  catch (err) {
+  } catch (err) {
     console.error("Failed to create planet:", err);
     res.status(500).json({
       error: "Failed to create planet",
@@ -136,7 +134,7 @@ router.post("/", async (req, res) => {
 router.put("/:id", async (req, res) => {
   const allowedUpdates = [
     "name",
-    "image",          // BASE64 -> Buffer
+    "image", // BASE64 -> Buffer
     "introduction",
     "population",
     "major_industry",
@@ -175,16 +173,18 @@ router.put("/:id", async (req, res) => {
     }
 
     if (updates.name) updates.name = updates.name.trim();
-    if (updates.introduction) updates.introduction = updates.introduction.trim();
-    if (updates.major_industry) updates.major_industry = updates.major_industry.trim();
+    if (updates.introduction)
+      updates.introduction = updates.introduction.trim();
+    if (updates.major_industry)
+      updates.major_industry = updates.major_industry.trim();
     if (updates.specifics) updates.specifics = updates.specifics.trim();
     if (updates.population !== undefined) {
       updates.population = Number(updates.population);
     }
 
     const updatedPlanet = await Planet.findOneAndUpdate(
-      {planet_id: req.params.id},     
-      { $set: updates }, 
+      { planet_id: req.params.id },
+      { $set: updates },
       { new: true, runValidators: true }
     );
 
@@ -202,9 +202,9 @@ router.put("/:id", async (req, res) => {
 //POST completed tasks to a planet (jobs_done)
 router.post("/:id/jobs_done", async (req, res) => {
   try {
-    const { tasks } = req.body; 
+    const { tasks } = req.body;
     // Expected format:
-    // tasks = [{ todo_name, completed_at?, user_id? }, ...]
+    // tasks = [{ todo_name, completed_at?, username? }, ...]
 
     // 1. Validate tasks array
     if (!Array.isArray(tasks) || tasks.length === 0) {
@@ -218,15 +218,17 @@ router.post("/:id/jobs_done", async (req, res) => {
     }
 
     // 3. Validate & format tasks for jobDoneSchema
-    const formattedTasks = tasks.map(task => {
+    const formattedTasks = tasks.map((task) => {
       if (!task.todo_name || !task.todo_name.trim()) {
         throw new Error("Each task must have a valid todo_name");
       }
 
       return {
         todo_name: task.todo_name.trim(),
-        completed_at: task.completed_at ? new Date(task.completed_at) : new Date(),
-        user_id: task.user_id || planet.user_id, // fallback to planet owner
+        completed_at: task.completed_at
+          ? new Date(task.completed_at)
+          : new Date(),
+        username: task.username || planet.username, // fallback to planet owner
       };
     });
 
@@ -241,7 +243,6 @@ router.post("/:id/jobs_done", async (req, res) => {
       success: true,
       jobs_done: planet.jobs_done,
     });
-
   } catch (err) {
     console.error("Failed to add jobs_done:", err);
     res.status(500).json({
@@ -254,7 +255,7 @@ router.post("/:id/jobs_done", async (req, res) => {
 // DELETE a planet
 router.delete("/:id", async (req, res) => {
   try {
-    await Planet.findOneAndDelete({planet_id: req.params.id});
+    await Planet.findOneAndDelete({ planet_id: req.params.id });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: "Failed to delete planet" });

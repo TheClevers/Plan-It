@@ -4,22 +4,32 @@ const { Schema } = mongoose;
 // Subdocument for each job done on the planet
 const jobDoneSchema = new Schema(
   {
-  //할 일 내용 
-    todo_name: { type: String, required: [true, "할 일을 작성해주세요!"], trim: true },
+    //할 일 내용
+    todo_name: {
+      type: String,
+      required: [true, "할 일을 작성해주세요!"],
+      trim: true,
+    },
     //planet_id:  {type: String,default: 'NONEPLANET',index: true},
     //기본 카테고리 : Uncategorized
     //category: { type: String, default: 'Uncategorized', index: true},
     //is_completed: { type: Boolean, default: false },
     completed_at: { type: Date, default: null },
-    user_id: { type: String, index: true, sparse: true },
+    username: { type: String, index: true, sparse: true },
   },
   { _id: true } // keep _id for each job if you want to reference/remove individually
 );
 
 const planetSchema = new Schema(
   {
-    planet_id: {type:String, requried: true, unique:true},
-    name: { type: String, required: true, unique: true, index: true, trim: true },
+    planet_id: { type: String, requried: true, unique: true },
+    name: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
+      trim: true,
+    },
     image: { type: Buffer, default: null },
     // Short introduction / description
     introduction: { type: String, default: null, trim: true },

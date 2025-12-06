@@ -20,14 +20,18 @@ router.post("/signup", async (req, res) => {
 
     // 1️⃣ Validation
     if (!username || !password) {
-      return res.status(400).json({ error: "user_id, username, and password are required" });
+      return res
+        .status(400)
+        .json({ error: "username and password are required" });
     }
 
     // 2️⃣ Check duplicate user
-    const existing = await User.findOne({username});
+    const existing = await User.findOne({ username });
 
     if (existing) {
-      return res.status(409).json({ error: "User ID or username already exists" });
+      return res
+        .status(409)
+        .json({ error: "User ID or username already exists" });
     }
 
     // 3️⃣ Hash password
@@ -54,7 +58,6 @@ router.post("/signup", async (req, res) => {
     res.status(500).json({ error: "Failed to sign up" });
   }
 });
-
 
 // ============================
 // ✅ SIGN IN
@@ -84,7 +87,6 @@ router.post("/login", async (req, res) => {
     // 4️⃣ Generate JWT
     const token = jwt.sign(
       {
-        user_id: user.user_id,
         username: user.username,
       },
       JWT_SECRET,
@@ -100,9 +102,7 @@ router.post("/login", async (req, res) => {
       token,
       user: safeUser,
     });
-  } 
-  
-  catch (err) {
+  } catch (err) {
     console.error("Login Error:", err);
     res.status(500).json({ error: "Failed to login" });
   }

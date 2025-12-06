@@ -8,28 +8,28 @@ import path from "path";
 //dotenv.config({ path: path.resolve("../.env") });
 dotenv.config();
 const app = express();
-app.use(cors({
-  origin: [
-    "http://localhost:5173",
-    "https://plan-it-origin-backend.onrender.com"
-  ],
-  methods: ["GET", "POST", "PUT", "DELETE"],
-}));
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "https://plan-it-origin-backend.onrender.com",
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE"],
+  })
+);
 app.use(express.json());
 
 console.log("Loaded DB_URL:", process.env.DB_URL);
 // Connect to MongoDB
 mongoose
-  .connect(process.env.DB_URL, {
-  })
+  .connect(process.env.DB_URL, {})
   .then(() => console.log("MongoDB connected"))
   .catch((err) => console.error("MongoDB connection error:", err));
-
 
 // Import your todo routes
 import todoRoutes from "./routes/todoRoutes.js";
 import planetRoutes from "./routes/planetRoutes.js";
-import authRoutes from "./routes/auth.routes.js"
+import authRoutes from "./routes/auth.routes.js";
 
 // Use the routes
 app.use("/api/todos", todoRoutes);
@@ -46,4 +46,3 @@ const PORT = process.env.PORT || 4000;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`✅ Server running on port ${PORT}`);
 });
-
