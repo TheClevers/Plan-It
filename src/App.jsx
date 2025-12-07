@@ -668,12 +668,32 @@ function App() {
           }
 
           // 빈 슬롯으로만 이동 가능
+          // 낙관적 업데이트: UI를 먼저 업데이트
           changePlanetSlot(srcSlot, nearestSlot);
+
+          // planetInfo의 position도 즉시 업데이트 (낙관적 업데이트)
+          const previousPosition = planetInfo[category]?.position;
+          setPlanetInfo((prev) => ({
+            ...prev,
+            [category]: {
+              ...prev[category],
+              position: nearestSlot,
+            },
+          }));
 
           // 백엔드에 position 업데이트
           const username = getUsername();
           if (!username) {
             console.error("Username not found. Please login again.");
+            // 에러 발생 시 변경사항 되돌림
+            changePlanetSlot(nearestSlot, srcSlot);
+            setPlanetInfo((prev) => ({
+              ...prev,
+              [category]: {
+                ...prev[category],
+                position: previousPosition,
+              },
+            }));
             setDragging(null);
             return;
           }
@@ -710,19 +730,36 @@ function App() {
                 updatedPlanet
               );
 
-              // planetInfo의 position 업데이트
+              // API 성공 시 서버에서 받은 최신 position으로 업데이트 (이미 낙관적 업데이트로 설정했지만 서버 응답으로 확인)
               setPlanetInfo((prev) => ({
                 ...prev,
                 [category]: {
                   ...prev[category],
-                  position: nearestSlot,
+                  position: updatedPlanet.position || nearestSlot,
                 },
               }));
             } catch (error) {
               console.error("Error updating planet position:", error);
-              // 에러 발생 시 슬롯 변경을 되돌림
+              // 에러 발생 시 모든 변경사항 되돌림 (낙관적 업데이트 롤백)
               changePlanetSlot(nearestSlot, srcSlot);
+              setPlanetInfo((prev) => ({
+                ...prev,
+                [category]: {
+                  ...prev[category],
+                  position: previousPosition,
+                },
+              }));
             }
+          } else {
+            // planetId가 없는 경우에도 변경사항 되돌림
+            changePlanetSlot(nearestSlot, srcSlot);
+            setPlanetInfo((prev) => ({
+              ...prev,
+              [category]: {
+                ...prev[category],
+                position: previousPosition,
+              },
+            }));
           }
         }
       }
