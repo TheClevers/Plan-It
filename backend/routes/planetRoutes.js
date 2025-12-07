@@ -147,6 +147,8 @@ router.post("/", async (req, res) => {
     }
 
     // Gemini를 사용하여 행성 이미지 생성, 검정색 배경 제거 및 S3에 업로드
+    const DEFAULT_PLANET_IMAGE_URL =
+      "https://du5bldqjud75a.cloudfront.net/planets/PLANET_1765127325208.png";
     let s3ImageUrl = null;
     try {
       // 프롬프트 생성 (행성 이름 기반)
@@ -167,10 +169,12 @@ router.post("/", async (req, res) => {
       console.log(`✅ 이미지가 S3에 업로드되었습니다: ${s3ImageUrl}`);
     } catch (imageError) {
       console.error(
-        "⚠️ 이미지 생성/배경 제거/업로드 실패 (행성은 계속 생성됩니다):",
+        "⚠️ 이미지 생성/배경 제거/업로드 실패 (기본 이미지 사용):",
         imageError
       );
-      // 이미지 생성/업로드 실패해도 행성 생성은 계속 진행
+      // 이미지 생성/업로드 실패 시 기본 이미지 URL 사용
+      s3ImageUrl = DEFAULT_PLANET_IMAGE_URL;
+      console.log(`✅ 기본 이미지 URL 설정: ${s3ImageUrl}`);
     }
 
     const planet = new Planet({
