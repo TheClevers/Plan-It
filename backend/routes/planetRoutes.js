@@ -1,5 +1,6 @@
 import express from "express";
 import Planet from "../models/Planet.js";
+import { uploadTestImageToS3 } from "../utils/s3Upload.js";
 
 const router = express.Router();
 
@@ -8,18 +9,7 @@ router.get("/", async (req, res) => {
   try {
     const planets = await Planet.find();
 
-    const formattedPlanets = planets.map((planet) => {
-      const planetObj = planet.toObject();
-
-      return {
-        ...planetObj,
-        image: planet.image
-          ? planet.image.toString("base64") // ✅ Buffer -> Base64
-          : null,
-      };
-    });
-
-    res.json(formattedPlanets);
+    res.json(planets);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to fetch planets" });
@@ -31,11 +21,8 @@ router.get("/:id", async (req, res) => {
   try {
     const planet = await Planet.findOne({ planet_id: req.params.id });
     if (!planet) return res.status(404).json({ error: "Planet not found" });
-    const response = {
-      ...planet.toObject(),
-      image: planet.image ? planet.image.toString("base64") : null,
-    };
-    res.json(response);
+
+    res.json(planet);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch planet" });
   }
@@ -64,7 +51,6 @@ router.post("/", async (req, res) => {
     const {
       planet_id,
       name,
-      image,
       introduction,
       population,
       major_industry,
@@ -92,25 +78,20 @@ router.post("/", async (req, res) => {
       return res.status(409).json({ error: "Planet name already exists" });
     }
 
-    let imageBuffer = null;
-    if (image) {
-      try {
-        imageBuffer = Buffer.from(image, "base64");
-      } catch (err) {
-        return res.status(400).json({ error: "Invalid base64 image format" });
-      }
-      const MAX_IMAGE_SIZE = 10_000_000; // 10MB
-      if (imageBuffer.length > MAX_IMAGE_SIZE) {
-        return res
-          .status(400)
-          .json({ error: "Image too large. Max size is 10MB." });
-      }
+    // test.png를 S3에 업로드
+    let s3ImageUrl = null;
+    try {
+      s3ImageUrl = await uploadTestImageToS3(planet_id);
+      console.log(`✅ test.png가 S3에 업로드되었습니다: ${s3ImageUrl}`);
+    } catch (s3Error) {
+      console.error("⚠️ S3 업로드 실패 (행성은 계속 생성됩니다):", s3Error);
+      // S3 업로드 실패해도 행성 생성은 계속 진행
     }
 
     const planet = new Planet({
       planet_id: planet_id || null,
       name: cleanName,
-      image: imageBuffer,
+      s3_image_url: s3ImageUrl || null,
       introduction: introduction ? introduction.trim() : null,
       population: population ? Number(population) : 0,
       major_industry: major_industry ? major_industry.trim() : "NO INDUSTRY",
@@ -120,6 +101,7 @@ router.post("/", async (req, res) => {
     });
 
     await planet.save();
+
     res.status(201).json(planet);
   } catch (err) {
     console.error("Failed to create planet:", err);
@@ -134,7 +116,6 @@ router.post("/", async (req, res) => {
 router.put("/:id", async (req, res) => {
   const allowedUpdates = [
     "name",
-    "image", // BASE64 -> Buffer
     "introduction",
     "population",
     "major_industry",
@@ -154,24 +135,6 @@ router.put("/:id", async (req, res) => {
   }
 
   try {
-    if (updates.image) {
-      try {
-        const imageBuffer = Buffer.from(updates.image, "base64");
-        const MAX_IMAGE_SIZE = 10_000_000;
-        if (imageBuffer.length > MAX_IMAGE_SIZE) {
-          return res.status(400).json({
-            error: "Image too large. Max size is 10MB.",
-          });
-        }
-
-        updates.image = imageBuffer;
-      } catch (err) {
-        return res.status(400).json({
-          error: "Invalid base64 image format",
-        });
-      }
-    }
-
     if (updates.name) updates.name = updates.name.trim();
     if (updates.introduction)
       updates.introduction = updates.introduction.trim();

@@ -30,7 +30,7 @@ const planetSchema = new Schema(
       index: true,
       trim: true,
     },
-    image: { type: Buffer, default: null },
+    s3_image_url: { type: String, default: null, trim: true },
     // Short introduction / description
     introduction: { type: String, default: null, trim: true },
     // Population - use Number (could be integer or BigInt depending on scale)
