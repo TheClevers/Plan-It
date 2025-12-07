@@ -34,10 +34,6 @@ export default function Login() {
     }
   };
 
-  const handleSkipLogin = () => {
-    navigate("/main");
-  };
-
   return (
     <div className="w-full h-screen space-background flex items-center justify-center relative">
       {/* 로그인 카드 */}
@@ -112,24 +108,6 @@ export default function Login() {
           className="mt-3 text-cyan-300 hover:text-cyan-200 text-sm transition"
         >
           Sign Up
-        </button>
-
-        {/* 로그인 스킵 */}
-        <button
-          onClick={handleSkipLogin}
-          className="
-            w-full 
-            text-white
-             border border-cyan-300
-            hover:bg-[rgba(255,255,255,0.05)]
-            py-2
-            rounded
-            mt-1
-            transition
-            text-sm
-          "
-        >
-          Skip Login (개발용)
         </button>
       </div>
     </div>
