@@ -151,6 +151,9 @@ function App() {
   // 드래그 상태: { category, x, y, offsetX, offsetY }
   const [dragging, setDragging] = useState(null);
 
+  // 드래그가 실제로 발생했는지 추적 (클릭과 구분하기 위해)
+  const dragStartedRef = useRef(false);
+
   // 카테고리별 Gemini가 생성한 행성 이미지 URL
   const [planetImages, setPlanetImages] = useState({});
 
@@ -610,6 +613,21 @@ function App() {
       const rect = planetsLayerRef.current.getBoundingClientRect();
       const x = e.clientX - rect.left - dragging.offsetX;
       const y = e.clientY - rect.top - dragging.offsetY;
+
+      // 마우스가 일정 거리 이상 이동했는지 확인 (5px 이상)
+      if (
+        dragging.initialMouseX !== undefined &&
+        dragging.initialMouseY !== undefined
+      ) {
+        const dx = e.clientX - rect.left - dragging.initialMouseX;
+        const dy = e.clientY - rect.top - dragging.initialMouseY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance > 5) {
+          dragStartedRef.current = true;
+        }
+      }
+
       setDragging((prev) =>
         prev
           ? {
@@ -624,6 +642,10 @@ function App() {
     const handleMouseUp = () => {
       if (!dragging) return;
       if (!planetsLayerRef.current) {
+        // onClick 이벤트가 발생하기 전에 플래그를 리셋하지 않도록 약간의 지연
+        setTimeout(() => {
+          dragStartedRef.current = false;
+        }, 100);
         setDragging(null);
         return;
       }
@@ -663,6 +685,10 @@ function App() {
           // dest 슬롯에 행성이 있으면 이동 불가능
           if (isDestOccupied) {
             console.log("Cannot move planet: destination slot is occupied");
+            // onClick 이벤트가 발생하기 전에 플래그를 리셋하지 않도록 약간의 지연
+            setTimeout(() => {
+              dragStartedRef.current = false;
+            }, 100);
             setDragging(null);
             return;
           }
@@ -682,6 +708,10 @@ function App() {
           }));
 
           // 드래그 모드를 즉시 해제 (낙관적 업데이트)
+          // onClick 이벤트가 발생하기 전에 플래그를 리셋하지 않도록 약간의 지연
+          setTimeout(() => {
+            dragStartedRef.current = false;
+          }, 100);
           setDragging(null);
 
           // 백엔드에 position 업데이트 (백그라운드에서 처리)
@@ -763,10 +793,18 @@ function App() {
           }
         } else {
           // 같은 슬롯이거나 이동할 필요가 없는 경우
+          // onClick 이벤트가 발생하기 전에 플래그를 리셋하지 않도록 약간의 지연
+          setTimeout(() => {
+            dragStartedRef.current = false;
+          }, 100);
           setDragging(null);
         }
       } else {
         // nearestSlot이 null인 경우
+        // onClick 이벤트가 발생하기 전에 플래그를 리셋하지 않도록 약간의 지연
+        setTimeout(() => {
+          dragStartedRef.current = false;
+        }, 100);
         setDragging(null);
       }
     };
@@ -791,12 +829,19 @@ function App() {
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
 
+    // 드래그 시작 시 초기 위치 저장 및 플래그 리셋
+    dragStartedRef.current = false;
+    const initialMouseX = mouseX;
+    const initialMouseY = mouseY;
+
     setDragging({
       category,
       x: pos.x,
       y: pos.y,
       offsetX: mouseX - pos.x,
       offsetY: mouseY - pos.y,
+      initialMouseX,
+      initialMouseY,
     });
   };
 
@@ -1398,6 +1443,12 @@ function App() {
   };
 
   const handlePlanetClick = (category) => {
+    // 드래그가 실제로 발생했다면 클릭으로 간주하지 않음
+    if (dragStartedRef.current) {
+      dragStartedRef.current = false;
+      return;
+    }
+
     setClickedPlanetCategories((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(category)) {
