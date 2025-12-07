@@ -68,6 +68,11 @@ export default function Login() {
           maxLength={10}
           value={pw}
           onChange={(e) => setPw(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              handleSubmit();
+            }
+          }}
           className="border border-gray-500 px-3 py-2 w-full mb-6 rounded 
                      bg-[rgba(255,255,255,0.9)] text-black
                      focus:outline-none focus:ring-2 focus:ring-cyan-400"
