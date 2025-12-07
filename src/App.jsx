@@ -1884,6 +1884,29 @@ function App() {
           }}
         />
       ))}
+
+      {/* 튜토리얼 버튼 (우측 하단) */}
+      <button
+        onClick={() => navigate("/tutorial")}
+        className="
+          fixed bottom-6 right-6 z-50
+          w-14 h-14 rounded-full
+          bg-cyan-500 hover:bg-cyan-400
+          text-white font-bold text-xl
+          shadow-lg hover:shadow-xl
+          transition-all duration-300
+          hover:scale-110 active:scale-95
+          flex items-center justify-center
+          border-2 border-cyan-300
+        "
+        style={{
+          boxShadow:
+            "0 4px 12px rgba(31, 184, 214, 0.4), 0 0 20px rgba(31, 184, 214, 0.2)",
+        }}
+        title="튜토리얼 보기"
+      >
+        ?
+      </button>
     </div>
   );
 }
