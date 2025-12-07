@@ -86,6 +86,7 @@ router.post("/", async (req, res) => {
       major_industry,
       specifics,
       username,
+      position,
     } = req.body;
 
     if (!planet_id || !planet_id.trim()) {
@@ -100,8 +101,24 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ error: "username is required" });
     }
 
+    if (position === undefined || position === null) {
+      return res.status(400).json({ error: "position is required" });
+    }
+
     const cleanName = name.trim();
     const cleanUsername = username.trim();
+    const requestedPosition = Number(position);
+
+    // position이 1~18 사이의 정수인지 확인
+    if (
+      !Number.isInteger(requestedPosition) ||
+      requestedPosition < 1 ||
+      requestedPosition > 18
+    ) {
+      return res.status(400).json({
+        error: "Position must be an integer between 1 and 18",
+      });
+    }
 
     // 해당 username의 모든 행성 조회하여 사용 중인 position 확인
     const existingPlanets = await Planet.find({
@@ -116,15 +133,12 @@ router.post("/", async (req, res) => {
       });
     }
 
-    // 사용 가능한 position 찾기 (1~18 중 사용되지 않은 것)
-    const allPositions = Array.from({ length: 18 }, (_, i) => i + 1);
-    const availablePositions = allPositions.filter(
-      (pos) => !usedPositions.includes(pos)
-    );
-
-    // 사용 가능한 position 중 랜덤하게 하나 선택
-    const randomIndex = Math.floor(Math.random() * availablePositions.length);
-    const assignedPosition = availablePositions[randomIndex];
+    // 요청된 position이 이미 사용 중인지 확인
+    if (usedPositions.includes(requestedPosition)) {
+      return res.status(409).json({
+        error: `Position ${requestedPosition} is already taken by another planet`,
+      });
+    }
 
     // Gemini를 사용하여 행성 정보 생성
     let generatedIndustry = major_industry ? major_industry.trim() : null;
@@ -187,7 +201,7 @@ router.post("/", async (req, res) => {
       specifics: generatedSpecifics || "NO SPECIFICS",
       jobs_done: [],
       username: cleanUsername,
-      position: assignedPosition,
+      position: requestedPosition,
     });
 
     await planet.save();
