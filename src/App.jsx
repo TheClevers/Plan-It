@@ -200,6 +200,13 @@ function App() {
           const planetName = planet.category || planet.name;
           if (!planetName) return;
 
+          // position 필드 확인 (1~18 사이의 정수)
+          const position = planet.position;
+          if (position && position >= 1 && position <= 18) {
+            // position에 맞는 슬롯에 행성 배치
+            savePlanetToSlot(position, { name: planetName });
+          }
+
           // 카테고리 추가
           const introduction = planet.introduction || "";
           newCategories.push({
@@ -217,6 +224,7 @@ function App() {
             specifics: planet.specifics || "NO SPECIFICS",
             introduction: introduction,
             completedTodos: planet.completedTodos || planet.jobs_done || [],
+            position: planet.position, // position 정보 저장
           };
 
           // 완료된 할 일 추가
@@ -560,9 +568,19 @@ function App() {
     }
 
     // 2) 슬롯이 없는 카테고리는 자동으로 빈 슬롯에 배치
+    // (position이 없는 경우에만 작동 - 백엔드에서 항상 position을 제공하므로 거의 사용되지 않음)
     allCategories.forEach((category) => {
       if (categoriesWithSlot.has(category)) return;
-      placePlanetRandomly({ name: category });
+
+      // position 정보가 있는지 확인
+      const info = planetInfo[category];
+      if (info && info.position && info.position >= 1 && info.position <= 18) {
+        // position이 있으면 해당 슬롯에 배치
+        savePlanetToSlot(info.position, { name: category });
+      } else {
+        // position이 없으면 랜덤 배치 (예외 상황)
+        placePlanetRandomly({ name: category });
+      }
       categoriesWithSlot.add(category);
     });
 
@@ -581,7 +599,7 @@ function App() {
     });
 
     return unsubscribe;
-  }, [allCategories, sunCenter]);
+  }, [allCategories, sunCenter, planetInfo]);
 
   // 드래그 관련: 마우스 이동 / 업 전역 리스너
   useEffect(() => {
@@ -603,7 +621,7 @@ function App() {
       );
     };
 
-    const handleMouseUp = () => {
+    const handleMouseUp = async () => {
       if (!dragging) return;
       if (!planetsLayerRef.current) {
         setDragging(null);
@@ -638,7 +656,74 @@ function App() {
         }
 
         if (srcSlot != null && srcSlot !== nearestSlot) {
+          // dest 슬롯에 이미 다른 행성이 있는지 확인
+          const destSlotPlanet = planetSlots[nearestSlot];
+          const isDestOccupied = destSlotPlanet !== null;
+
+          // dest 슬롯에 행성이 있으면 이동 불가능
+          if (isDestOccupied) {
+            console.log("Cannot move planet: destination slot is occupied");
+            setDragging(null);
+            return;
+          }
+
+          // 빈 슬롯으로만 이동 가능
           changePlanetSlot(srcSlot, nearestSlot);
+
+          // 백엔드에 position 업데이트
+          const username = getUsername();
+          if (!username) {
+            console.error("Username not found. Please login again.");
+            setDragging(null);
+            return;
+          }
+
+          // 이동하는 행성의 position 업데이트
+          const planetInfoForCategory = planetInfo[category];
+          const planetId = planetInfoForCategory?.planetId;
+
+          if (planetId) {
+            try {
+              const response = await fetch(
+                `${API_BASE_URL}/api/planets/${planetId}`,
+                {
+                  method: "PUT",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    position: nearestSlot,
+                    username: username,
+                  }),
+                }
+              );
+
+              if (!response.ok) {
+                throw new Error(
+                  `Failed to update planet position: ${response.status}`
+                );
+              }
+
+              const updatedPlanet = await response.json();
+              console.log(
+                "Planet position updated successfully:",
+                updatedPlanet
+              );
+
+              // planetInfo의 position 업데이트
+              setPlanetInfo((prev) => ({
+                ...prev,
+                [category]: {
+                  ...prev[category],
+                  position: nearestSlot,
+                },
+              }));
+            } catch (error) {
+              console.error("Error updating planet position:", error);
+              // 에러 발생 시 슬롯 변경을 되돌림
+              changePlanetSlot(nearestSlot, srcSlot);
+            }
+          }
         }
       }
 
@@ -652,7 +737,7 @@ function App() {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [dragging, sunCenter]);
+  }, [dragging, sunCenter, planetInfo]);
 
   const handlePlanetMouseDown = (e, category) => {
     e.preventDefault();
@@ -748,15 +833,22 @@ function App() {
       const newPlanet = await response.json();
       console.log("Planet created successfully:", newPlanet);
 
+      // 행성 정보 업데이트 (임시 -> 실제)
+      const planetName = newPlanet.category || newPlanet.name || trimmed;
+
+      // position 필드 확인 (1~18 사이의 정수)
+      const position = newPlanet.position;
+      if (position && position >= 1 && position <= 18) {
+        // position에 맞는 슬롯에 행성 배치
+        savePlanetToSlot(position, { name: planetName });
+      }
+
       // 공사중 상태 제거
       setLoadingPlanets((prev) => {
         const next = new Set(prev);
         next.delete(trimmed);
         return next;
       });
-
-      // 행성 정보 업데이트 (임시 -> 실제)
-      const planetName = newPlanet.category || newPlanet.name || trimmed;
       setPlanetInfo((prev) => ({
         ...prev,
         [planetName]: {
@@ -769,6 +861,7 @@ function App() {
           introduction: newPlanet.introduction || categoryObj.description || "",
           completedTodos: newPlanet.completedTodos || newPlanet.jobs_done || [],
           isLoading: false,
+          position: newPlanet.position, // position 정보 저장
         },
       }));
 
@@ -1492,23 +1585,6 @@ function App() {
                       boxShadow: glow,
                     }}
                   />
-                  {/* 번호 표시 */}
-                  <div
-                    className="absolute text-white font-bold text-center flex items-center justify-center"
-                    style={{
-                      width: `${MINIMUM_PLANET_SIZE}px`,
-                      height: `${MINIMUM_PLANET_SIZE}px`,
-                      left: "50%",
-                      top: "50%",
-                      transform: "translate(-50%, -50%)",
-                      fontSize: "20px",
-                      textShadow:
-                        "0 0 4px rgba(0, 0, 0, 0.8), 0 0 8px rgba(0, 0, 0, 0.6)",
-                      zIndex: 6,
-                    }}
-                  >
-                    {pos.index}
-                  </div>
                 </div>
               );
             })}
