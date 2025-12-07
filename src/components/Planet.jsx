@@ -1,8 +1,9 @@
 import planetCat from "../assets/planet_cat.png";
 import planetClean from "../assets/planet_clean.png";
 import planetStudy from "../assets/planet_study.png";
+import loadingImage from "../assets/loading.png";
 
-export default function Planet({ category, size, onClick, imageUrl }) {
+export default function Planet({ category, size, onClick, imageUrl, isLoading = false }) {
   // 카테고리별 기본 이미지 매핑
   const getPlanetImage = (category) => {
     if (category.includes("냥냥") || category.toLowerCase().includes("cat")) {
@@ -58,10 +59,22 @@ export default function Planet({ category, size, onClick, imageUrl }) {
           height: `${size}px`,
           transition: "width 0.5s ease-out, height 0.5s ease-out",
           background: "transparent",
-          boxShadow: "none"
+          boxShadow: "none",
         }}
       >
-        {planetImage ? (
+        {isLoading ? (
+          <img
+            src={loadingImage}
+            alt="공사중"
+            className="rounded-full"
+            style={{
+              width: "150%",
+              height: "150%",
+              objectFit: "cover",
+            }}
+            draggable={false}
+          />
+        ) : planetImage ? (
           <img
             src={planetImage}
             alt={category}

@@ -146,14 +146,16 @@ export default function TodoList({
   const handleAddCategoryModal = () => {
     if (!newCategoryName.trim()) return;
 
+    // 모달 즉시 닫기
+    setNewCategoryName("");
+    setNewCategoryDescription("");
+    setIsPlanetModalOpen(false);
+
+    // API 호출은 백그라운드에서 실행 (await 없이)
     onAddCategory({
       name: newCategoryName.trim(),
       description: newCategoryDescription.trim(),
     });
-
-    setNewCategoryName("");
-    setNewCategoryDescription("");
-    setIsPlanetModalOpen(false);
   };
 
   const checkedCount = todos.filter((todo) => todo.checked).length;

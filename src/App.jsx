@@ -157,6 +157,12 @@ function App() {
   // 행성 정보 저장 (카테고리명을 키로 사용)
   const [planetInfo, setPlanetInfo] = useState({});
 
+  // 새 행성 추가 중 로딩 상태
+  const [isAddingPlanet, setIsAddingPlanet] = useState(false);
+
+  // 공사중인 행성들 (임시 행성)
+  const [loadingPlanets, setLoadingPlanets] = useState(new Set());
+
   const containerRef = useRef(null);
   const planetsLayerRef = useRef(null);
   const [sunCenter, setSunCenter] = useState({ x: 0, y: 0 });
@@ -668,7 +674,36 @@ function App() {
       return;
     }
 
-    // API 호출로 행성 생성
+    // 즉시 임시 행성 추가 (공사중 표시)
+    setLoadingPlanets((prev) => new Set([...prev, trimmed]));
+    setCategories((prev) => [
+      ...prev,
+      {
+        name: trimmed,
+        description: categoryObj.description || "",
+      },
+    ]);
+
+    // 임시 행성 정보 저장
+    setPlanetInfo((prev) => ({
+      ...prev,
+      [trimmed]: {
+        id: null,
+        planetId: null,
+        name: trimmed,
+        population: 0,
+        majorIndustry: "NO INDUSTRY",
+        specifics: "NO SPECIFICS",
+        introduction: categoryObj.description || "",
+        completedTodos: [],
+        isLoading: true,
+      },
+    }));
+
+    // 로딩 시작
+    setIsAddingPlanet(true);
+
+    // API 호출로 행성 생성 (백그라운드)
     try {
       const response = await fetch(`${API_BASE_URL}/api/planets`, {
         method: "POST",
@@ -697,16 +732,14 @@ function App() {
       const newPlanet = await response.json();
       console.log("Planet created successfully:", newPlanet);
 
-      // 성공 시 카테고리 추가
-      setCategories((prev) => [
-        ...prev,
-        {
-          name: trimmed,
-          description: categoryObj.description || "",
-        },
-      ]);
+      // 공사중 상태 제거
+      setLoadingPlanets((prev) => {
+        const next = new Set(prev);
+        next.delete(trimmed);
+        return next;
+      });
 
-      // 행성 정보 저장
+      // 행성 정보 업데이트 (임시 -> 실제)
       const planetName = newPlanet.category || newPlanet.name || trimmed;
       setPlanetInfo((prev) => ({
         ...prev,
@@ -719,11 +752,40 @@ function App() {
           specifics: newPlanet.specifics || "NO SPECIFICS",
           introduction: newPlanet.introduction || categoryObj.description || "",
           completedTodos: newPlanet.completedTodos || newPlanet.jobs_done || [],
+          isLoading: false,
         },
       }));
+
+      // S3 이미지 URL 저장
+      const imageUrl = newPlanet.s3_image_url || newPlanet.image;
+      if (imageUrl) {
+        // URL에 프로토콜이 없으면 https:// 추가
+        const fullImageUrl =
+          imageUrl.startsWith("http://") || imageUrl.startsWith("https://")
+            ? imageUrl
+            : `https://${imageUrl}`;
+        setPlanetImages((prev) => ({
+          ...prev,
+          [planetName]: fullImageUrl,
+        }));
+      }
     } catch (error) {
       console.error("Error creating planet:", error);
-      // 에러 발생 시에도 UI에 추가하지 않음
+      // 에러 발생 시 임시 행성 제거
+      setLoadingPlanets((prev) => {
+        const next = new Set(prev);
+        next.delete(trimmed);
+        return next;
+      });
+      setCategories((prev) => prev.filter((c) => c.name !== trimmed));
+      setPlanetInfo((prev) => {
+        const next = { ...prev };
+        delete next[trimmed];
+        return next;
+      });
+    } finally {
+      // 로딩 종료
+      setIsAddingPlanet(false);
     }
   };
 
@@ -1406,6 +1468,7 @@ function App() {
                   size={size}
                   imageUrl={imageUrl}
                   onClick={() => handlePlanetClick(category)}
+                  isLoading={loadingPlanets.has(category)}
                 />
 
                 {/* 말풍선 */}
