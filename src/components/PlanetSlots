@@ -23,7 +23,7 @@ let listeners = [];
 
 /**
  * React 컴포넌트가 리렌더되도록 등록하는 함수
- * @param {Function} callback 
+ * @param {Function} callback
  */
 export function subscribePlanetChange(callback) {
   listeners.push(callback);
@@ -37,24 +37,24 @@ export function notifyPlanetPosInfoChanged() {
   listeners.forEach((callback) => callback(planetSlots));
 }
 
-export function savePlanetToSlot(posId, planetPosInfo){
-  planetSlots[posId] = planetPosInfo
+export function savePlanetToSlot(posId, planetPosInfo) {
+  planetSlots[posId] = planetPosInfo;
   notifyPlanetPosInfoChanged();
 }
 
-export function changePlanetSlot(src, dest){
-    planetSlots[dest] = planetSlots[src]
-    planetSlots[src] = null
-    notifyPlanetPosInfoChanged();
-}
-
-export function resetPlanetPosWithId(posId){
-  planetSlots[posId] = null
+export function changePlanetSlot(src, dest) {
+  planetSlots[dest] = planetSlots[src];
+  planetSlots[src] = null;
   notifyPlanetPosInfoChanged();
 }
 
-export function isPositionOccupied(id){
-  return (planetSlots[id] !== null)
+export function resetPlanetPosWithId(posId) {
+  planetSlots[posId] = null;
+  notifyPlanetPosInfoChanged();
+}
+
+export function isPositionOccupied(id) {
+  return planetSlots[id] !== null;
 }
 
 export function findRandomEmptySlot() {

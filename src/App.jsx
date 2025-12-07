@@ -14,6 +14,8 @@ import {
   savePlanetToSlot,
   changePlanetSlot,
   placePlanetRandomly,
+  findRandomEmptySlot,
+  resetPlanetPosWithId,
 } from "./components/PlanetSlots";
 import { getUsername } from "./services/auth";
 
@@ -873,6 +875,16 @@ function App() {
       return;
     }
 
+    // 비어있는 position 찾기 (랜덤)
+    const emptyPosition = findRandomEmptySlot();
+    if (emptyPosition === -1) {
+      console.error("No empty position available. All slots are full.");
+      return;
+    }
+
+    // 찾은 position에 임시로 행성 배치 (로딩 이미지 표시를 위해)
+    savePlanetToSlot(emptyPosition, { name: trimmed });
+
     // 즉시 임시 행성 추가 (공사중 표시)
     setLoadingPlanets((prev) => new Set([...prev, trimmed]));
     setCategories((prev) => [
@@ -883,7 +895,7 @@ function App() {
       },
     ]);
 
-    // 임시 행성 정보 저장
+    // 임시 행성 정보 저장 (position 포함)
     setPlanetInfo((prev) => ({
       ...prev,
       [trimmed]: {
@@ -896,13 +908,14 @@ function App() {
         introduction: categoryObj.description || "",
         completedTodos: [],
         isLoading: true,
+        position: emptyPosition, // 찾은 position 저장
       },
     }));
 
     // 로딩 시작
     setIsAddingPlanet(true);
 
-    // API 호출로 행성 생성 (백그라운드)
+    // API 호출로 행성 생성 (position 포함)
     try {
       const response = await fetch(`${API_BASE_URL}/api/planets`, {
         method: "POST",
@@ -918,6 +931,7 @@ function App() {
           major_industry: "NO INDUSTRY",
           specifics: "NO SPECIFICS",
           username: username,
+          position: emptyPosition, // 비어있는 position 전송
         }),
       });
 
@@ -935,9 +949,9 @@ function App() {
       const planetName = newPlanet.category || newPlanet.name || trimmed;
 
       // position 필드 확인 (1~18 사이의 정수)
-      const position = newPlanet.position;
+      const position = newPlanet.position || emptyPosition;
       if (position && position >= 1 && position <= 18) {
-        // position에 맞는 슬롯에 행성 배치
+        // position에 맞는 슬롯에 행성 배치 (이미 배치되어 있지만 확인 차)
         savePlanetToSlot(position, { name: planetName });
       }
 
@@ -959,7 +973,7 @@ function App() {
           introduction: newPlanet.introduction || categoryObj.description || "",
           completedTodos: newPlanet.completedTodos || newPlanet.jobs_done || [],
           isLoading: false,
-          position: newPlanet.position, // position 정보 저장
+          position: position, // position 정보 저장
         },
       }));
 
@@ -979,6 +993,7 @@ function App() {
     } catch (error) {
       console.error("Error creating planet:", error);
       // 에러 발생 시 임시 행성 제거
+      resetPlanetPosWithId(emptyPosition); // 슬롯에서 제거
       setLoadingPlanets((prev) => {
         const next = new Set(prev);
         next.delete(trimmed);
