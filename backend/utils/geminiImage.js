@@ -152,6 +152,31 @@ export async function generatePlanetImage(prompt) {
 }
 
 /**
+ * Gemini로 이미지를 생성하고 검정색 배경을 투명하게 만드는 함수
+ * @param {string} prompt - 이미지 생성 프롬프트
+ * @returns {Promise<{data: string, mimeType: string}>} 배경이 제거된 base64 데이터와 MIME 타입
+ */
+export async function generatePlanetImageWithTransparentBackground(prompt) {
+  try {
+    // 먼저 이미지 생성
+    const imageResult = await generatePlanetImage(prompt);
+
+    // 검정색 배경 제거
+    const { removeBlackBackground } = await import("./removeBackground.js");
+    const processedImage = await removeBlackBackground(
+      imageResult.data,
+      imageResult.mimeType
+    );
+
+    console.log("✅ 검정색 배경 제거 완료");
+    return processedImage;
+  } catch (error) {
+    console.error("이미지 생성 및 배경 제거 중 오류 발생:", error);
+    throw error;
+  }
+}
+
+/**
  * 행성 정보 생성을 위한 프롬프트를 만드는 함수
  * @param {string} planetName - 행성 이름
  * @param {string|null} description - 행성 설명 (선택사항)

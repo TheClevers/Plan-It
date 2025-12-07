@@ -5,7 +5,7 @@ import {
   uploadBase64ImageToS3,
 } from "../utils/s3Upload.js";
 import {
-  generatePlanetImage,
+  generatePlanetImageWithTransparentBackground,
   buildPlanetPrompt,
   generatePlanetInfo,
 } from "../utils/geminiImage.js";
@@ -106,15 +106,17 @@ router.post("/", async (req, res) => {
       // 정보 생성 실패 시 제공된 값이나 기본값 사용
     }
 
-    // Gemini를 사용하여 행성 이미지 생성 및 S3에 업로드
+    // Gemini를 사용하여 행성 이미지 생성, 검정색 배경 제거 및 S3에 업로드
     let s3ImageUrl = null;
     try {
       // 프롬프트 생성 (행성 이름 기반)
       const prompt = buildPlanetPrompt(cleanName);
 
-      // Gemini로 이미지 생성
-      const imageData = await generatePlanetImage(prompt);
-      console.log(`✅ Gemini 이미지 생성 완료: ${cleanName}`);
+      // Gemini로 이미지 생성 및 검정색 배경 제거
+      const imageData = await generatePlanetImageWithTransparentBackground(
+        prompt
+      );
+      console.log(`✅ Gemini 이미지 생성 및 배경 제거 완료: ${cleanName}`);
 
       // S3에 업로드
       s3ImageUrl = await uploadBase64ImageToS3(
@@ -125,7 +127,7 @@ router.post("/", async (req, res) => {
       console.log(`✅ 이미지가 S3에 업로드되었습니다: ${s3ImageUrl}`);
     } catch (imageError) {
       console.error(
-        "⚠️ 이미지 생성/업로드 실패 (행성은 계속 생성됩니다):",
+        "⚠️ 이미지 생성/배경 제거/업로드 실패 (행성은 계속 생성됩니다):",
         imageError
       );
       // 이미지 생성/업로드 실패해도 행성 생성은 계속 진행
