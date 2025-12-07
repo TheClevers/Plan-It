@@ -108,6 +108,29 @@ router.post("/", async (req, res) => {
       return res.status(409).json({ error: "Planet name already exists" });
     }
 
+    // 해당 username의 모든 행성 조회하여 사용 중인 position 확인
+    const existingPlanets = await Planet.find({
+      username: cleanUsername,
+    }).select("position");
+    const usedPositions = existingPlanets.map((p) => p.position);
+
+    // 18개가 다 차있으면 생성 불가
+    if (usedPositions.length >= 18) {
+      return res.status(400).json({
+        error: "Maximum number of planets (18) reached for this username",
+      });
+    }
+
+    // 사용 가능한 position 찾기 (1~18 중 사용되지 않은 것)
+    const allPositions = Array.from({ length: 18 }, (_, i) => i + 1);
+    const availablePositions = allPositions.filter(
+      (pos) => !usedPositions.includes(pos)
+    );
+
+    // 사용 가능한 position 중 랜덤하게 하나 선택
+    const randomIndex = Math.floor(Math.random() * availablePositions.length);
+    const assignedPosition = availablePositions[randomIndex];
+
     // Gemini를 사용하여 행성 정보 생성
     let generatedIndustry = major_industry ? major_industry.trim() : null;
     // introduction은 유저 입력값 사용 (AI로 대체하지 않음)
@@ -165,6 +188,7 @@ router.post("/", async (req, res) => {
       specifics: generatedSpecifics || "NO SPECIFICS",
       jobs_done: [],
       username: cleanUsername,
+      position: assignedPosition,
     });
 
     await planet.save();
@@ -187,6 +211,7 @@ router.put("/:id", async (req, res) => {
     "population",
     "major_industry",
     "specifics",
+    "position",
   ];
 
   const updates = {};
@@ -208,6 +233,49 @@ router.put("/:id", async (req, res) => {
       return res.status(400).json({ error: "username is required" });
     }
 
+    const cleanUsername = username.trim();
+
+    // position 업데이트 시 검증
+    if (updates.position !== undefined) {
+      const newPosition = Number(updates.position);
+
+      // position이 1~18 사이의 정수인지 확인
+      if (
+        !Number.isInteger(newPosition) ||
+        newPosition < 1 ||
+        newPosition > 18
+      ) {
+        return res.status(400).json({
+          error: "Position must be an integer between 1 and 18",
+        });
+      }
+
+      // 현재 행성 조회 (기존 position 확인용)
+      const currentPlanet = await Planet.findOne({
+        planet_id: req.params.id,
+        username: cleanUsername,
+      });
+
+      if (!currentPlanet) {
+        return res.status(404).json({ error: "Planet not found" });
+      }
+
+      // 같은 username의 다른 행성이 이미 그 position을 사용하고 있는지 확인
+      const existingPlanetWithPosition = await Planet.findOne({
+        username: cleanUsername,
+        position: newPosition,
+        planet_id: { $ne: req.params.id }, // 현재 행성 제외
+      });
+
+      if (existingPlanetWithPosition) {
+        return res.status(409).json({
+          error: `Position ${newPosition} is already taken by another planet`,
+        });
+      }
+
+      updates.position = newPosition;
+    }
+
     if (updates.name) updates.name = updates.name.trim();
     if (updates.introduction)
       updates.introduction = updates.introduction.trim();
@@ -221,7 +289,7 @@ router.put("/:id", async (req, res) => {
     const updatedPlanet = await Planet.findOneAndUpdate(
       {
         planet_id: req.params.id,
-        username: username.trim(),
+        username: cleanUsername,
       },
       { $set: updates },
       { new: true, runValidators: true }

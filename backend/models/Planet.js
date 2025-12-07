@@ -41,12 +41,25 @@ const planetSchema = new Schema(
     specifics: { type: String, default: "NO SPECIFICS" },
     jobs_done: { type: [jobDoneSchema], default: [] },
     username: { type: String, required: true, index: true },
+    position: {
+      type: Number,
+      required: true,
+      min: 1,
+      max: 18,
+      validate: {
+        validator: Number.isInteger,
+        message: "Position must be an integer",
+      },
+    },
   },
   {
     // Map createdAt -> created_at and updatedAt -> updated_at
     timestamps: { createdAt: "created_at", updatedAt: "updated_at" },
   }
 );
+
+// 복합 unique 인덱스: 같은 username 내에서 position이 겹치지 않도록
+planetSchema.index({ username: 1, position: 1 }, { unique: true });
 
 const Planet = mongoose.model("Planet", planetSchema);
 export default Planet;
