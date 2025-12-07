@@ -175,7 +175,15 @@ function App() {
   useEffect(() => {
     const loadPlanets = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/planets`);
+        const username = getUsername();
+        if (!username) {
+          console.error("Username not found. Please login again.");
+          return;
+        }
+
+        const response = await fetch(
+          `${API_BASE_URL}/api/planets?username=${encodeURIComponent(username)}`
+        );
         if (!response.ok) {
           throw new Error(`Failed to fetch planets: ${response.status}`);
         }
@@ -297,7 +305,15 @@ function App() {
       }
 
       try {
-        const response = await fetch(`${API_BASE_URL}/api/todos`);
+        const username = getUsername();
+        if (!username) {
+          console.error("Username not found. Please login again.");
+          return;
+        }
+
+        const response = await fetch(
+          `${API_BASE_URL}/api/todos?username=${encodeURIComponent(username)}`
+        );
         if (!response.ok) {
           throw new Error(`Failed to fetch todos: ${response.status}`);
         }
@@ -866,11 +882,23 @@ function App() {
     const todo = todos.find((t) => t.id === id);
     if (!todo) return;
 
+    // username 가져오기
+    const username = getUsername();
+    if (!username) {
+      console.error("Username not found. Please login again.");
+      return;
+    }
+
     // API 호출로 할 일 삭제
     try {
-      const response = await fetch(`${API_BASE_URL}/api/todos/${todo.todoId}`, {
-        method: "DELETE",
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/api/todos/${todo.todoId}?username=${encodeURIComponent(
+          username
+        )}`,
+        {
+          method: "DELETE",
+        }
+      );
 
       if (!response.ok) {
         throw new Error(`Failed to delete todo: ${response.status}`);
@@ -890,6 +918,13 @@ function App() {
     const todo = todos.find((t) => t.id === id);
     if (!todo) return;
 
+    // username 가져오기
+    const username = getUsername();
+    if (!username) {
+      console.error("Username not found. Please login again.");
+      return;
+    }
+
     // API 호출로 할 일 이름 업데이트
     try {
       const response = await fetch(`${API_BASE_URL}/api/todos/${todo.todoId}`, {
@@ -899,6 +934,7 @@ function App() {
         },
         body: JSON.stringify({
           todo_name: newText,
+          username: username,
         }),
       });
 
@@ -926,6 +962,13 @@ function App() {
     const todo = todos.find((t) => t.id === todoId);
     if (!todo) return;
 
+    // username 가져오기
+    const username = getUsername();
+    if (!username) {
+      console.error("Username not found. Please login again.");
+      return;
+    }
+
     // targetCategory에서 planet_id 찾기
     const planetInfoForCategory = Object.values(planetInfo).find(
       (info) => info.name === targetCategory
@@ -941,6 +984,7 @@ function App() {
         },
         body: JSON.stringify({
           planet_id: targetPlanetId,
+          username: username,
         }),
       });
 
@@ -1054,6 +1098,14 @@ function App() {
 
     setIsLaunching(true);
 
+    // username 가져오기
+    const username = getUsername();
+    if (!username) {
+      console.error("Username not found. Please login again.");
+      setIsLaunching(false);
+      return;
+    }
+
     // 체크된 할 일들을 API로 완료 처리
     const updatePromises = checkedTodos.map(async (todo) => {
       try {
@@ -1066,6 +1118,7 @@ function App() {
             },
             body: JSON.stringify({
               is_completed: true,
+              username: username,
             }),
           }
         );
@@ -1199,11 +1252,20 @@ function App() {
     const info = planetInfo[category];
     const planetId = info?.planetId;
 
+    // username 가져오기
+    const username = getUsername();
+    if (!username) {
+      console.error("Username not found. Please login again.");
+      return;
+    }
+
     // API 호출로 행성 삭제
     if (planetId) {
       try {
         const response = await fetch(
-          `${API_BASE_URL}/api/planets/${planetId}`,
+          `${API_BASE_URL}/api/planets/${planetId}?username=${encodeURIComponent(
+            username
+          )}`,
           {
             method: "DELETE",
           }
