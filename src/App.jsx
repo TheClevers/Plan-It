@@ -284,9 +284,15 @@ function App() {
 
         setCompletedTasks((prev) => {
           // 기존 완료된 할 일과 병합 (중복 제거)
+          // ID뿐만 아니라 text와 category 조합으로도 중복 체크
           const existingIds = new Set(prev.map((t) => t.id));
+          const existingKeys = new Set(
+            prev.map((t) => `${t.text}|${t.category}`)
+          );
           const uniqueNewTasks = newCompletedTasks.filter(
-            (t) => !existingIds.has(t.id)
+            (t) =>
+              !existingIds.has(t.id) &&
+              !existingKeys.has(`${t.text}|${t.category}`)
           );
           return [...prev, ...uniqueNewTasks];
         });
@@ -373,9 +379,15 @@ function App() {
         setTodos(localTodos);
         setCompletedTasks((prev) => {
           // 기존 완료된 할 일과 병합 (중복 제거)
+          // ID뿐만 아니라 text와 category 조합으로도 중복 체크
           const existingIds = new Set(prev.map((t) => t.id));
+          const existingKeys = new Set(
+            prev.map((t) => `${t.text}|${t.category}`)
+          );
           const uniqueNewTasks = localCompletedTasks.filter(
-            (t) => !existingIds.has(t.id)
+            (t) =>
+              !existingIds.has(t.id) &&
+              !existingKeys.has(`${t.text}|${t.category}`)
           );
           return [...prev, ...uniqueNewTasks];
         });
@@ -1370,7 +1382,20 @@ function App() {
         completedAt: new Date(),
       }));
 
-      setCompletedTasks((prev) => [...prev, ...newCompletedTasks]);
+      setCompletedTasks((prev) => {
+        // 기존 완료된 할 일과 병합 (중복 제거)
+        // ID뿐만 아니라 text와 category 조합으로도 중복 체크
+        const existingIds = new Set(prev.map((t) => t.id));
+        const existingKeys = new Set(
+          prev.map((t) => `${t.text}|${t.category}`)
+        );
+        const uniqueNewTasks = newCompletedTasks.filter(
+          (t) =>
+            !existingIds.has(t.id) &&
+            !existingKeys.has(`${t.text}|${t.category}`)
+        );
+        return [...prev, ...uniqueNewTasks];
+      });
       // 체크된 할 일들을 제거하고, 체크되지 않은 할 일들만 남김
       setTodos((prev) => prev.filter((todo) => !todo.checked));
 

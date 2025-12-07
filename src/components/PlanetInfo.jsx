@@ -1,12 +1,19 @@
-export default function PlanetInfo({
-  category,
-  completedTasks,
-  planetSize,
-}) {
+export default function PlanetInfo({ category, completedTasks, planetSize }) {
   // 행성 오른쪽에 표시 (공간이 부족하면 왼쪽)
   const offset = planetSize / 2 + 20;
   const tooltipWidth = 300;
   const tooltipHeight = Math.min(400, completedTasks.length * 80 + 100);
+
+  // 날짜 및 시간 포맷팅
+  const formatDate = (date) => {
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    const hours = String(d.getHours()).padStart(2, "0");
+    const minutes = String(d.getMinutes()).padStart(2, "0");
+    return `${year}.${month}.${day} ${hours}:${minutes}`;
+  };
 
   return (
     <div
@@ -45,7 +52,7 @@ export default function PlanetInfo({
                   className="p-2.5 bg-[#16213e] rounded-md flex flex-col gap-1"
                 >
                   <span className="text-xs text-gray-500">
-                    {task.completedAt.toLocaleDateString()}
+                    {formatDate(task.completedAt)}
                   </span>
                   <span className="text-white text-sm">{task.text}</span>
                 </div>
@@ -57,4 +64,3 @@ export default function PlanetInfo({
     </div>
   );
 }
-
