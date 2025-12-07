@@ -11,8 +11,18 @@ export default function PlanetModal({
   planetInfo,
 }) {
   const modalRef = useRef(null);
+  const hasAnimatedRef = useRef(false); // 애니메이션이 이미 실행되었는지 추적
+  const lastCategoryRef = useRef(category); // 이전 category 추적
   const modalWidth = 400;
   const offset = 20;
+
+  // category가 변경되면 애니메이션 플래그 리셋 (모달이 다시 열릴 때 애니메이션 실행)
+  useEffect(() => {
+    if (lastCategoryRef.current !== category) {
+      hasAnimatedRef.current = false;
+      lastCategoryRef.current = category;
+    }
+  }, [category]);
 
   // 모달 최종 위치 계산
   const finalPosition = useMemo(() => {
@@ -41,9 +51,9 @@ export default function PlanetModal({
     return { x: finalX, y: adjustedY };
   }, [planetPosition, planetSize]);
 
-  // 행성에서 튀어나오는 애니메이션
+  // 행성에서 튀어나오는 애니메이션 (처음 마운트될 때만 실행)
   useEffect(() => {
-    if (modalRef.current && planetPosition) {
+    if (modalRef.current && planetPosition && !hasAnimatedRef.current) {
       const modal = modalRef.current;
       const startX = planetPosition.x;
       const startY = planetPosition.y;
@@ -63,8 +73,17 @@ export default function PlanetModal({
           modal.style.top = `${finalPosition.y}px`;
           modal.style.transform = "translateY(-50%) scale(1)";
           modal.style.opacity = "1";
+          hasAnimatedRef.current = true; // 애니메이션 완료 표시
         });
       });
+    } else if (modalRef.current && planetPosition && hasAnimatedRef.current) {
+      // 이미 애니메이션이 실행된 경우, 위치만 업데이트 (애니메이션 없이)
+      const modal = modalRef.current;
+      modal.style.transition = "none"; // 애니메이션 없이 즉시 이동
+      modal.style.left = `${finalPosition.x}px`;
+      modal.style.top = `${finalPosition.y}px`;
+      modal.style.transform = "translateY(-50%) scale(1)";
+      modal.style.opacity = "1";
     }
   }, [planetPosition, finalPosition]);
 
