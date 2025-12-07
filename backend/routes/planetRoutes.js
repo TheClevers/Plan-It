@@ -1,6 +1,14 @@
 import express from "express";
 import Planet from "../models/Planet.js";
-import { uploadTestImageToS3 } from "../utils/s3Upload.js";
+import {
+  uploadTestImageToS3,
+  uploadBase64ImageToS3,
+} from "../utils/s3Upload.js";
+import {
+  generatePlanetImage,
+  buildPlanetPrompt,
+  generatePlanetInfo,
+} from "../utils/geminiImage.js";
 
 const router = express.Router();
 
@@ -78,24 +86,59 @@ router.post("/", async (req, res) => {
       return res.status(409).json({ error: "Planet name already exists" });
     }
 
-    // test.png를 S3에 업로드
+    // Gemini를 사용하여 행성 정보 생성
+    let generatedIndustry = major_industry ? major_industry.trim() : null;
+    // introduction은 유저 입력값 사용 (AI로 대체하지 않음)
+    const userIntroduction = introduction ? introduction.trim() : null;
+    let generatedSpecifics = specifics ? specifics.trim() : null;
+
+    try {
+      const planetInfo = await generatePlanetInfo(cleanName, introduction);
+      generatedIndustry = planetInfo.industry;
+      // AI가 생성한 introduction은 specifics에만 사용
+      generatedSpecifics = planetInfo.introduction;
+      console.log(`✅ Gemini 행성 정보 생성 완료: ${cleanName}`);
+    } catch (infoError) {
+      console.error(
+        "⚠️ 행성 정보 생성 실패 (기본값 사용 또는 제공된 값 사용):",
+        infoError
+      );
+      // 정보 생성 실패 시 제공된 값이나 기본값 사용
+    }
+
+    // Gemini를 사용하여 행성 이미지 생성 및 S3에 업로드
     let s3ImageUrl = null;
     try {
-      s3ImageUrl = await uploadTestImageToS3(planet_id);
-      console.log(`✅ test.png가 S3에 업로드되었습니다: ${s3ImageUrl}`);
-    } catch (s3Error) {
-      console.error("⚠️ S3 업로드 실패 (행성은 계속 생성됩니다):", s3Error);
-      // S3 업로드 실패해도 행성 생성은 계속 진행
+      // 프롬프트 생성 (행성 이름 기반)
+      const prompt = buildPlanetPrompt(cleanName);
+
+      // Gemini로 이미지 생성
+      const imageData = await generatePlanetImage(prompt);
+      console.log(`✅ Gemini 이미지 생성 완료: ${cleanName}`);
+
+      // S3에 업로드
+      s3ImageUrl = await uploadBase64ImageToS3(
+        planet_id,
+        imageData.data,
+        imageData.mimeType
+      );
+      console.log(`✅ 이미지가 S3에 업로드되었습니다: ${s3ImageUrl}`);
+    } catch (imageError) {
+      console.error(
+        "⚠️ 이미지 생성/업로드 실패 (행성은 계속 생성됩니다):",
+        imageError
+      );
+      // 이미지 생성/업로드 실패해도 행성 생성은 계속 진행
     }
 
     const planet = new Planet({
       planet_id: planet_id || null,
       name: cleanName,
       s3_image_url: s3ImageUrl || null,
-      introduction: introduction ? introduction.trim() : null,
-      population: population ? Number(population) : 0,
-      major_industry: major_industry ? major_industry.trim() : "NO INDUSTRY",
-      specifics: specifics ? specifics.trim() : "NO SPECIFICS",
+      introduction: userIntroduction || null, // 유저 입력값 사용
+      population: population ? Number(population) : 100, // 기본값 100명
+      major_industry: generatedIndustry || "NO INDUSTRY",
+      specifics: generatedSpecifics || "NO SPECIFICS",
       jobs_done: [],
       username: cleanUsername,
     });
@@ -198,13 +241,21 @@ router.post("/:id/jobs_done", async (req, res) => {
     // 4. Push into jobs_done (correct field)
     planet.jobs_done.push(...formattedTasks);
 
-    // 5. Save
+    // 5. 인구수 증가 (각 할일마다 10~50 랜덤 증가)
+    let populationIncrease = 0;
+    for (let i = 0; i < formattedTasks.length; i++) {
+      populationIncrease += 10 + Math.floor(Math.random() * 41); // 각 할일마다 10~50 랜덤
+    }
+    planet.population = (planet.population || 100) + populationIncrease;
+
+    // 6. Save
     await planet.save();
 
-    // 6. Respond with updated jobs_done
+    // 7. Respond with updated jobs_done and population
     res.json({
       success: true,
       jobs_done: planet.jobs_done,
+      population: planet.population,
     });
   } catch (err) {
     console.error("Failed to add jobs_done:", err);
