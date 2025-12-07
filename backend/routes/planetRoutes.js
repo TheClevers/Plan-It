@@ -151,8 +151,8 @@ router.post("/", async (req, res) => {
       "https://du5bldqjud75a.cloudfront.net/planets/PLANET_1765127325208.png";
     let s3ImageUrl = null;
     try {
-      // 프롬프트 생성 (행성 이름 기반)
-      const prompt = buildPlanetPrompt(cleanName);
+      // 프롬프트 생성 (행성 이름과 소개 기반)
+      const prompt = buildPlanetPrompt(cleanName, userIntroduction);
 
       // Gemini로 이미지 생성 및 검정색 배경 제거
       const imageData = await generatePlanetImageWithTransparentBackground(

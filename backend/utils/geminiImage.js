@@ -65,16 +65,26 @@ export async function sendMessageToGemini(message) {
 }
 
 /**
- * 행성 이름을 기반으로 이미지 생성 프롬프트를 만드는 함수
+ * 행성 이름과 소개를 기반으로 이미지 생성 프롬프트를 만드는 함수
  * @param {string} planetName - 행성 이름
+ * @param {string|null} introduction - 행성 소개 (선택사항)
  * @returns {string} 프롬프트 문자열
  */
-export function buildPlanetPrompt(planetName) {
-  return `
+export function buildPlanetPrompt(planetName, introduction = null) {
+  let prompt = `
 Generate a 2D, outlineless, casual cel-shaded planet illustration with a vibrant style.
 The planet's theme is defined by a keyword (e.g., "Cleaning Planet", "Study Planet").
 The keyword is: "${planetName}".
+`;
 
+  if (introduction) {
+    prompt += `
+Additional context about the planet: ${introduction}
+Use this context to enhance the visual elements and theme of the planet illustration.
+`;
+  }
+
+  prompt += `
 Arrange elements relevant to the keyword directly on the planet's surface to reflect the theme.
 Ensure a solid #000000 (pure black) background.
 
@@ -82,6 +92,8 @@ Absolutely no outlines, watermarks, alphabets, or any kind of language text/lett
 Avoid realistic facial features on creature/pet planets; use stylized, deformed features only.
 Do not generate in 3D style.
 `.trim();
+
+  return prompt;
 }
 
 /**
