@@ -232,11 +232,17 @@ function App() {
             }
           });
 
-          // 이미지는 임시로 null 처리 (나중에 구현)
-          if (planet.image) {
+          // S3 이미지 URL 우선 사용, 없으면 image 필드 사용
+          const imageUrl = planet.s3_image_url || planet.image;
+          if (imageUrl) {
+            // URL에 프로토콜이 없으면 https:// 추가
+            const fullImageUrl =
+              imageUrl.startsWith("http://") || imageUrl.startsWith("https://")
+                ? imageUrl
+                : `https://${imageUrl}`;
             setPlanetImages((prev) => ({
               ...prev,
-              [planetName]: planet.image,
+              [planetName]: fullImageUrl,
             }));
           }
         });
@@ -585,10 +591,7 @@ function App() {
       const { category, x, y } = dragging;
 
       // 드롭 위치에서 가장 가까운 고정 슬롯 찾기
-      const localFixedPositions = getFixedPositions(
-        sunCenter.x,
-        sunCenter.y
-      );
+      const localFixedPositions = getFixedPositions(sunCenter.x, sunCenter.y);
       let nearestSlot = null;
       let minDist = Infinity;
 
