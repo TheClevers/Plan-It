@@ -1,5 +1,7 @@
 import express from "express";
 import Todo from "../models/Todo.js";
+import Planet from "../models/Planet.js";
+import { updatePlanetInfo } from "../utils/geminiImage.js";
 
 const router = express.Router();
 
@@ -7,7 +9,7 @@ const router = express.Router();
 router.get("/", async (req, res) => {
   try {
     const { username } = req.query;
-    
+
     if (!username || !username.trim()) {
       return res.status(400).json({ error: "username is required" });
     }
@@ -24,14 +26,14 @@ router.get("/", async (req, res) => {
 router.get("/:id", async (req, res) => {
   try {
     const { username } = req.query;
-    
+
     if (!username || !username.trim()) {
       return res.status(400).json({ error: "username is required" });
     }
 
-    const todo = await Todo.findOne({ 
+    const todo = await Todo.findOne({
       todo_id: req.params.id,
-      username: username.trim()
+      username: username.trim(),
     });
     if (!todo) return res.status(404).json({ error: "Todo not found" });
     res.json(todo);
@@ -72,6 +74,16 @@ router.put("/:id", async (req, res) => {
       return res.status(400).json({ error: "username is required" });
     }
 
+    // 기존 할일 정보 가져오기 (완료 상태 변경 확인용)
+    const existingTodo = await Todo.findOne({
+      todo_id: req.params.id,
+      username: username.trim(),
+    });
+
+    if (!existingTodo) {
+      return res.status(404).json({ error: "Todo not found" });
+    }
+
     const updateData = {};
 
     if (todo_name !== undefined) updateData.todo_name = todo_name;
@@ -82,9 +94,9 @@ router.put("/:id", async (req, res) => {
     }
 
     const updated = await Todo.findOneAndUpdate(
-      { 
+      {
         todo_id: req.params.id,
-        username: username.trim()
+        username: username.trim(),
       },
       { $set: updateData },
       { new: true, runValidators: true }
@@ -92,6 +104,69 @@ router.put("/:id", async (req, res) => {
 
     if (!updated) {
       return res.status(404).json({ error: "Todo not found" });
+    }
+
+    // 할일이 새로 완료된 경우 (이전에는 완료되지 않았고, 지금 완료됨)
+    if (
+      is_completed === true &&
+      existingTodo.is_completed === false &&
+      updated.planet_id &&
+      updated.planet_id !== "NONEPLANET"
+    ) {
+      try {
+        console.log("updated.planet_id", updated.planet_id);
+        // 해당 행성 찾기
+        const planet = await Planet.findOne({
+          planet_id: updated.planet_id,
+          username: username.trim(),
+        });
+        console.log("planet", planet);
+
+        if (planet) {
+          // 인구수 증가 (10~50 랜덤)
+          const populationIncrease = 10 + Math.floor(Math.random() * 41); // 10~50
+          planet.population = (planet.population || 0) + populationIncrease;
+
+          // jobs_done에 완료된 할일 추가
+          planet.jobs_done.push({
+            todo_name: updated.todo_name,
+            completed_at: updated.completed_at || new Date(),
+            username: updated.username,
+          });
+
+          // LLM을 사용하여 행성의 주력산업과 특이사항 업데이트
+          try {
+            const updatedInfo = await updatePlanetInfo(
+              planet.name,
+              planet.major_industry || "NO INDUSTRY",
+              planet.specifics || "NO SPECIFICS",
+              updated.todo_name
+            );
+
+            planet.major_industry = updatedInfo.major_industry;
+            planet.specifics = updatedInfo.specifics;
+
+            console.log(`✅ 행성 정보 업데이트 완료: ${planet.name}`);
+          } catch (llmError) {
+            console.error("LLM을 통한 행성 정보 업데이트 실패:", llmError);
+            // LLM 업데이트 실패해도 인구수 증가와 jobs_done 추가는 유지
+          }
+
+          await planet.save();
+          console.log(
+            `✅ 할일 완료: 행성 ${planet.name} 인구수 +${populationIncrease} (현재: ${planet.population})`
+          );
+        } else {
+          console.warn(
+            `⚠️ 행성을 찾을 수 없음: planet_id=${
+              updated.planet_id
+            }, username=${username.trim()}`
+          );
+        }
+      } catch (planetError) {
+        console.error("행성 업데이트 실패:", planetError);
+        // 행성 업데이트 실패해도 할일 업데이트는 성공으로 처리
+      }
     }
 
     res.json(updated);
@@ -105,20 +180,20 @@ router.put("/:id", async (req, res) => {
 router.delete("/:id", async (req, res) => {
   try {
     const { username } = req.query;
-    
+
     if (!username || !username.trim()) {
       return res.status(400).json({ error: "username is required" });
     }
 
-    const deletedTodo = await Todo.findOneAndDelete({ 
+    const deletedTodo = await Todo.findOneAndDelete({
       todo_id: req.params.id,
-      username: username.trim()
+      username: username.trim(),
     });
-    
+
     if (!deletedTodo) {
       return res.status(404).json({ error: "Todo not found" });
     }
-    
+
     res.json({ success: true });
   } catch (err) {
     console.error(err);

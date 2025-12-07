@@ -242,3 +242,95 @@ export async function generatePlanetInfo(planetName, description = null) {
     throw error;
   }
 }
+
+/**
+ * 행성 정보 업데이트를 위한 프롬프트를 만드는 함수
+ * @param {string} planetName - 행성 이름
+ * @param {string} currentIndustry - 현재 주요산업
+ * @param {string} currentSpecifics - 현재 특이사항
+ * @param {string} completedTodo - 완료된 할일 내용
+ * @returns {string} 프롬프트 문자열
+ */
+export function buildPlanetUpdatePrompt(
+  planetName,
+  currentIndustry,
+  currentSpecifics,
+  completedTodo
+) {
+  const prompt = `"${planetName}"라는 행성에 새로운 작업이 완료되었습니다. 기존 행성의 맥락을 유지하면서 주요산업과 특이사항을 자연스럽게 업데이트해주세요.
+
+**행성 정보:**
+- 행성 이름: ${planetName}
+- 현재 주요산업: ${currentIndustry}
+- 현재 특이사항: ${currentSpecifics}
+
+**완료된 작업:**
+- ${completedTodo}
+
+위 작업이 완료되면서 행성이 조금씩 발전하고 변화했습니다. 기존의 맥락과 스타일을 유지하면서, 완료된 작업의 영향을 반영하여 주요산업과 특이사항을 자연스럽게 업데이트해주세요.
+
+다음 JSON 형식으로 정보를 제공해주세요:
+{
+  "major_industry": "[기존 주요산업의 맥락을 유지하면서 완료된 작업의 영향을 반영한 업데이트된 주요산업. 4개 이상의 산업을 쉼표로 구분하여 나열하세요.]",
+  "specifics": "[기존 특이사항의 맥락을 유지하면서 완료된 작업의 영향을 반영한 업데이트된 특이사항. 행성의 변화와 발전을 200자 이내로 매력적으로 설명하세요.]"
+}
+
+모든 응답은 반드시 한국어로 작성해주세요. JSON 객체만 반환하고, 추가 텍스트나 마크다운 형식은 사용하지 마세요.`;
+
+  return prompt;
+}
+
+/**
+ * Gemini를 사용하여 완료된 할일을 반영하여 행성 정보를 업데이트하는 함수
+ * @param {string} planetName - 행성 이름
+ * @param {string} currentIndustry - 현재 주요산업
+ * @param {string} currentSpecifics - 현재 특이사항
+ * @param {string} completedTodo - 완료된 할일 내용
+ * @returns {Promise<{major_industry: string, specifics: string}>} 업데이트된 행성 정보 객체
+ */
+export async function updatePlanetInfo(
+  planetName,
+  currentIndustry,
+  currentSpecifics,
+  completedTodo
+) {
+  try {
+    const prompt = buildPlanetUpdatePrompt(
+      planetName,
+      currentIndustry,
+      currentSpecifics,
+      completedTodo
+    );
+    const responseText = await sendMessageToGemini(prompt);
+
+    if (!responseText) {
+      throw new Error("Gemini 응답이 없습니다.");
+    }
+
+    // JSON 파싱 시도 (마크다운 코드 블록 제거)
+    let jsonText = responseText.trim();
+
+    // 마크다운 코드 블록 제거
+    if (jsonText.startsWith("```json")) {
+      jsonText = jsonText.replace(/^```json\n?/, "").replace(/\n?```$/, "");
+    } else if (jsonText.startsWith("```")) {
+      jsonText = jsonText.replace(/^```\n?/, "").replace(/\n?```$/, "");
+    }
+
+    // JSON 파싱
+    const planetInfo = JSON.parse(jsonText);
+
+    // 필수 필드 확인
+    if (!planetInfo.major_industry || !planetInfo.specifics) {
+      throw new Error("Gemini 응답에 필수 필드가 없습니다.");
+    }
+
+    return {
+      major_industry: planetInfo.major_industry,
+      specifics: planetInfo.specifics,
+    };
+  } catch (error) {
+    console.error("행성 정보 업데이트 중 오류 발생:", error);
+    throw error;
+  }
+}

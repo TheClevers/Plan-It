@@ -26,7 +26,6 @@ const planetSchema = new Schema(
     name: {
       type: String,
       required: true,
-      unique: true,
       index: true,
       trim: true,
     },

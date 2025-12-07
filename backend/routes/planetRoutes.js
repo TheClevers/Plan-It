@@ -103,11 +103,6 @@ router.post("/", async (req, res) => {
     const cleanName = name.trim();
     const cleanUsername = username.trim();
 
-    const exists = await Planet.findOne({ name: cleanName });
-    if (exists) {
-      return res.status(409).json({ error: "Planet name already exists" });
-    }
-
     // 해당 username의 모든 행성 조회하여 사용 중인 position 확인
     const existingPlanets = await Planet.find({
       username: cleanUsername,
