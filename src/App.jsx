@@ -621,7 +621,7 @@ function App() {
       );
     };
 
-    const handleMouseUp = async () => {
+    const handleMouseUp = () => {
       if (!dragging) return;
       if (!planetsLayerRef.current) {
         setDragging(null);
@@ -681,7 +681,10 @@ function App() {
             },
           }));
 
-          // 백엔드에 position 업데이트
+          // 드래그 모드를 즉시 해제 (낙관적 업데이트)
+          setDragging(null);
+
+          // 백엔드에 position 업데이트 (백그라운드에서 처리)
           const username = getUsername();
           if (!username) {
             console.error("Username not found. Please login again.");
@@ -694,7 +697,6 @@ function App() {
                 position: previousPosition,
               },
             }));
-            setDragging(null);
             return;
           }
 
@@ -703,53 +705,51 @@ function App() {
           const planetId = planetInfoForCategory?.planetId;
 
           if (planetId) {
-            try {
-              const response = await fetch(
-                `${API_BASE_URL}/api/planets/${planetId}`,
-                {
-                  method: "PUT",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify({
-                    position: nearestSlot,
-                    username: username,
-                  }),
+            // API 요청을 백그라운드에서 처리 (await 없이)
+            fetch(`${API_BASE_URL}/api/planets/${planetId}`, {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                position: nearestSlot,
+                username: username,
+              }),
+            })
+              .then(async (response) => {
+                if (!response.ok) {
+                  throw new Error(
+                    `Failed to update planet position: ${response.status}`
+                  );
                 }
-              );
 
-              if (!response.ok) {
-                throw new Error(
-                  `Failed to update planet position: ${response.status}`
+                const updatedPlanet = await response.json();
+                console.log(
+                  "Planet position updated successfully:",
+                  updatedPlanet
                 );
-              }
 
-              const updatedPlanet = await response.json();
-              console.log(
-                "Planet position updated successfully:",
-                updatedPlanet
-              );
-
-              // API 성공 시 서버에서 받은 최신 position으로 업데이트 (이미 낙관적 업데이트로 설정했지만 서버 응답으로 확인)
-              setPlanetInfo((prev) => ({
-                ...prev,
-                [category]: {
-                  ...prev[category],
-                  position: updatedPlanet.position || nearestSlot,
-                },
-              }));
-            } catch (error) {
-              console.error("Error updating planet position:", error);
-              // 에러 발생 시 모든 변경사항 되돌림 (낙관적 업데이트 롤백)
-              changePlanetSlot(nearestSlot, srcSlot);
-              setPlanetInfo((prev) => ({
-                ...prev,
-                [category]: {
-                  ...prev[category],
-                  position: previousPosition,
-                },
-              }));
-            }
+                // API 성공 시 서버에서 받은 최신 position으로 업데이트 (이미 낙관적 업데이트로 설정했지만 서버 응답으로 확인)
+                setPlanetInfo((prev) => ({
+                  ...prev,
+                  [category]: {
+                    ...prev[category],
+                    position: updatedPlanet.position || nearestSlot,
+                  },
+                }));
+              })
+              .catch((error) => {
+                console.error("Error updating planet position:", error);
+                // 에러 발생 시 모든 변경사항 되돌림 (낙관적 업데이트 롤백)
+                changePlanetSlot(nearestSlot, srcSlot);
+                setPlanetInfo((prev) => ({
+                  ...prev,
+                  [category]: {
+                    ...prev[category],
+                    position: previousPosition,
+                  },
+                }));
+              });
           } else {
             // planetId가 없는 경우에도 변경사항 되돌림
             changePlanetSlot(nearestSlot, srcSlot);
@@ -761,10 +761,14 @@ function App() {
               },
             }));
           }
+        } else {
+          // 같은 슬롯이거나 이동할 필요가 없는 경우
+          setDragging(null);
         }
+      } else {
+        // nearestSlot이 null인 경우
+        setDragging(null);
       }
-
-      setDragging(null);
     };
 
     window.addEventListener("mousemove", handleMouseMove);
