@@ -1276,7 +1276,7 @@ function App() {
       }, 1500);
     });
 
-    setTimeout(() => {
+    setTimeout(async () => {
       const newCompletedTasks = checkedTodos.map((todo) => ({
         id: todo.id,
         text: todo.text,
@@ -1287,6 +1287,70 @@ function App() {
       setCompletedTasks((prev) => [...prev, ...newCompletedTasks]);
       // 체크된 할 일들을 제거하고, 체크되지 않은 할 일들만 남김
       setTodos((prev) => prev.filter((todo) => !todo.checked));
+
+      // 완료된 할일을 카테고리별로 그룹화
+      const todosByCategory = checkedTodos.reduce((acc, todo) => {
+        if (!acc[todo.category]) {
+          acc[todo.category] = [];
+        }
+        acc[todo.category].push(todo);
+        return acc;
+      }, {});
+
+      // 각 행성의 정보 업데이트
+      const planetUpdatePromises = Object.keys(todosByCategory).map(
+        async (category) => {
+          const planetInfoForCategory = planetInfo[category];
+          const planetId = planetInfoForCategory?.planetId;
+
+          if (!planetId) return;
+
+          try {
+            // 행성 정보를 다시 가져와서 업데이트
+            const response = await fetch(
+              `${API_BASE_URL}/api/planets/${planetId}?username=${encodeURIComponent(
+                username
+              )}`
+            );
+
+            if (!response.ok) {
+              throw new Error(
+                `Failed to fetch updated planet: ${response.status}`
+              );
+            }
+
+            const updatedPlanet = await response.json();
+            console.log(
+              `Planet ${category} updated successfully:`,
+              updatedPlanet
+            );
+
+            // planetInfo 업데이트
+            const planetName =
+              updatedPlanet.category || updatedPlanet.name || category;
+            setPlanetInfo((prev) => ({
+              ...prev,
+              [planetName]: {
+                id: updatedPlanet._id,
+                planetId: updatedPlanet.planet_id,
+                name: planetName,
+                population: updatedPlanet.population || 0,
+                majorIndustry: updatedPlanet.major_industry || "NO INDUSTRY",
+                specifics: updatedPlanet.specifics || "NO SPECIFICS",
+                introduction: updatedPlanet.introduction || "",
+                completedTodos:
+                  updatedPlanet.completedTodos || updatedPlanet.jobs_done || [],
+                position: updatedPlanet.position,
+              },
+            }));
+          } catch (error) {
+            console.error(`Error updating planet ${category}:`, error);
+          }
+        }
+      );
+
+      // 모든 행성 정보 업데이트 완료 대기
+      await Promise.all(planetUpdatePromises);
 
       setIsLaunching(false);
     }, 2000);
