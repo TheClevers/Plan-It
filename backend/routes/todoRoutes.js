@@ -5,18 +5,38 @@ const router = express.Router();
 
 // GET all todos
 router.get("/", async (req, res) => {
-  const todos = await Todo.find();
-  res.json(todos);
+  try {
+    const { username } = req.query;
+    
+    if (!username || !username.trim()) {
+      return res.status(400).json({ error: "username is required" });
+    }
+
+    const todos = await Todo.find({ username: username.trim() });
+    res.json(todos);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch todos" });
+  }
 });
 
-// GET a single planet by ID
+// GET a single todo by ID
 router.get("/:id", async (req, res) => {
   try {
-    const todo = await Todo.findOne({ todo_id: req.params.id });
+    const { username } = req.query;
+    
+    if (!username || !username.trim()) {
+      return res.status(400).json({ error: "username is required" });
+    }
+
+    const todo = await Todo.findOne({ 
+      todo_id: req.params.id,
+      username: username.trim()
+    });
     if (!todo) return res.status(404).json({ error: "Todo not found" });
     res.json(todo);
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch planet" });
+    res.status(500).json({ error: "Failed to fetch todo" });
   }
 });
 
@@ -46,7 +66,11 @@ router.post("/", async (req, res) => {
 // UPDATE todo
 router.put("/:id", async (req, res) => {
   try {
-    const { todo_name, planet_id, is_completed } = req.body;
+    const { todo_name, planet_id, is_completed, username } = req.body;
+
+    if (!username || !username.trim()) {
+      return res.status(400).json({ error: "username is required" });
+    }
 
     const updateData = {};
 
@@ -58,7 +82,10 @@ router.put("/:id", async (req, res) => {
     }
 
     const updated = await Todo.findOneAndUpdate(
-      { todo_id: req.params.id },
+      { 
+        todo_id: req.params.id,
+        username: username.trim()
+      },
       { $set: updateData },
       { new: true, runValidators: true }
     );
@@ -76,8 +103,27 @@ router.put("/:id", async (req, res) => {
 
 // DELETE todo
 router.delete("/:id", async (req, res) => {
-  await Todo.findOneAndDelete({ todo_id: req.params.id });
-  res.json({ success: true });
+  try {
+    const { username } = req.query;
+    
+    if (!username || !username.trim()) {
+      return res.status(400).json({ error: "username is required" });
+    }
+
+    const deletedTodo = await Todo.findOneAndDelete({ 
+      todo_id: req.params.id,
+      username: username.trim()
+    });
+    
+    if (!deletedTodo) {
+      return res.status(404).json({ error: "Todo not found" });
+    }
+    
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to delete todo" });
+  }
 });
 
 export default router;

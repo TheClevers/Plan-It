@@ -15,7 +15,13 @@ const router = express.Router();
 // GET all planets
 router.get("/", async (req, res) => {
   try {
-    const planets = await Planet.find();
+    const { username } = req.query;
+
+    if (!username || !username.trim()) {
+      return res.status(400).json({ error: "username is required" });
+    }
+
+    const planets = await Planet.find({ username: username.trim() });
 
     res.json(planets);
   } catch (err) {
@@ -27,7 +33,16 @@ router.get("/", async (req, res) => {
 // GET a single planet by ID
 router.get("/:id", async (req, res) => {
   try {
-    const planet = await Planet.findOne({ planet_id: req.params.id });
+    const { username } = req.query;
+
+    if (!username || !username.trim()) {
+      return res.status(400).json({ error: "username is required" });
+    }
+
+    const planet = await Planet.findOne({
+      planet_id: req.params.id,
+      username: username.trim(),
+    });
     if (!planet) return res.status(404).json({ error: "Planet not found" });
 
     res.json(planet);
@@ -39,9 +54,16 @@ router.get("/:id", async (req, res) => {
 //GET compeleted tasks for single Planet
 router.get("/:id/jobs_done", async (req, res) => {
   try {
-    const planet = await Planet.findOne({ planet_id: req.params.id }).select(
-      "jobs_done"
-    );
+    const { username } = req.query;
+
+    if (!username || !username.trim()) {
+      return res.status(400).json({ error: "username is required" });
+    }
+
+    const planet = await Planet.findOne({
+      planet_id: req.params.id,
+      username: username.trim(),
+    }).select("jobs_done");
     if (!planet) return res.status(404).json({ error: "Planet not found" });
     res.json(planet.jobs_done);
   } catch (err) {
@@ -180,6 +202,12 @@ router.put("/:id", async (req, res) => {
   }
 
   try {
+    const { username } = req.body;
+
+    if (!username || !username.trim()) {
+      return res.status(400).json({ error: "username is required" });
+    }
+
     if (updates.name) updates.name = updates.name.trim();
     if (updates.introduction)
       updates.introduction = updates.introduction.trim();
@@ -191,7 +219,10 @@ router.put("/:id", async (req, res) => {
     }
 
     const updatedPlanet = await Planet.findOneAndUpdate(
-      { planet_id: req.params.id },
+      {
+        planet_id: req.params.id,
+        username: username.trim(),
+      },
       { $set: updates },
       { new: true, runValidators: true }
     );
@@ -210,22 +241,30 @@ router.put("/:id", async (req, res) => {
 //POST completed tasks to a planet (jobs_done)
 router.post("/:id/jobs_done", async (req, res) => {
   try {
-    const { tasks } = req.body;
+    const { tasks, username } = req.body;
     // Expected format:
     // tasks = [{ todo_name, completed_at?, username? }, ...]
 
-    // 1. Validate tasks array
+    // 1. Validate username
+    if (!username || !username.trim()) {
+      return res.status(400).json({ error: "username is required" });
+    }
+
+    // 2. Validate tasks array
     if (!Array.isArray(tasks) || tasks.length === 0) {
       return res.status(400).json({ error: "Tasks array is required" });
     }
 
-    // 2. Find planet by custom planet_id
-    const planet = await Planet.findOne({ planet_id: req.params.id });
+    // 3. Find planet by custom planet_id and username
+    const planet = await Planet.findOne({
+      planet_id: req.params.id,
+      username: username.trim(),
+    });
     if (!planet) {
       return res.status(404).json({ error: "Planet not found" });
     }
 
-    // 3. Validate & format tasks for jobDoneSchema
+    // 4. Validate & format tasks for jobDoneSchema
     const formattedTasks = tasks.map((task) => {
       if (!task.todo_name || !task.todo_name.trim()) {
         throw new Error("Each task must have a valid todo_name");
@@ -271,7 +310,21 @@ router.post("/:id/jobs_done", async (req, res) => {
 // DELETE a planet
 router.delete("/:id", async (req, res) => {
   try {
-    await Planet.findOneAndDelete({ planet_id: req.params.id });
+    const { username } = req.query;
+
+    if (!username || !username.trim()) {
+      return res.status(400).json({ error: "username is required" });
+    }
+
+    const deletedPlanet = await Planet.findOneAndDelete({
+      planet_id: req.params.id,
+      username: username.trim(),
+    });
+
+    if (!deletedPlanet) {
+      return res.status(404).json({ error: "Planet not found" });
+    }
+
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: "Failed to delete planet" });
