@@ -1166,6 +1166,34 @@ function App() {
     });
   };
 
+  const handleCloseAllModals = () => {
+    setClickedPlanetCategories(new Set());
+  };
+
+  // 배경 클릭 핸들러 - 빈 배경만 클릭했을 때 모달 닫기
+  const handleBackgroundClick = (e) => {
+    // 클릭된 요소가 상호작용 가능한 요소인지 확인
+    const target = e.target;
+
+    // 상호작용 가능한 요소들: 버튼, 행성, 모달, TodoList, 말풍선 등
+    const isInteractiveElement =
+      target.closest("button") ||
+      target.closest('[class*="cursor-grab"]') ||
+      target.closest('[class*="cursor-pointer"]') ||
+      target.closest('[class*="z-50"]') ||
+      target.closest('[class*="z-40"]') ||
+      target.closest("img") ||
+      target.closest("input") ||
+      target.closest("textarea") ||
+      target.closest("select") ||
+      target.closest("a");
+
+    // 빈 배경만 클릭했을 때만 모달 닫기
+    if (!isInteractiveElement && clickedPlanetCategories.size > 0) {
+      handleCloseAllModals();
+    }
+  };
+
   const handleDeletePlanet = async (category) => {
     // category 매개변수는 삭제할 카테고리의 '이름(String)'입니다.
     const info = planetInfo[category];
@@ -1325,6 +1353,7 @@ function App() {
           ref={planetsLayerRef}
           className="relative w-full h-full"
           style={{ minHeight: "calc(100vh - 80px)" }}
+          onClick={handleBackgroundClick}
         >
           {/* 궤도 원들 */}
           {FIXED_ORBIT_RADII.map((radius) => (
@@ -1462,6 +1491,7 @@ function App() {
                   transform: "translate(-50%, -50%)",
                 }}
                 onMouseDown={(e) => handlePlanetMouseDown(e, category)}
+                onClick={(e) => e.stopPropagation()}
               >
                 <Planet
                   category={category}

@@ -101,6 +101,7 @@ export default function PlanetModal({
           top: `${finalPosition.y}px`,
           transform: "translateY(-50%)",
         }}
+        onClick={(e) => e.stopPropagation()}
       >
         {/* 헤더 */}
         <div className="flex items-center justify-between p-5 border-b border-gray-700">
