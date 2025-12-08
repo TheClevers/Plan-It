@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import tutorial1 from "./assets/tutorial/tutorial1.png";
 import tutorial2 from "./assets/tutorial/tutorial2.png";
 import tutorial3 from "./assets/tutorial/tutorial3.png";
@@ -29,6 +29,14 @@ export default function Tutorial() {
   const [step, setStep] = useState(0);
   const [started, setStarted] = useState(false);
 
+   // ⭐ 튜토리얼 이미지 미리 로딩
+    useEffect(() => {
+    images.forEach((src) => {
+    const img = new Image();
+    img.src = src;
+     });
+    }, []);
+    
   const handleStart = () => {
     console.log("START CLICKED");
     setStarted(true);
