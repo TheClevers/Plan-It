@@ -1,5 +1,86 @@
 import { useEffect, useRef, useMemo } from "react";
 
+/** 행성용 우주 레벨바 */
+function PlanetLevelBar({ level, percent }) {
+  const clampedPercent = Math.max(0, Math.min(100, percent));
+  const levelValue = Math.max(1, level);
+
+  return (
+    <div className="w-full mb-4">
+      {/* 텍스트 헤더 */}
+      <div className="flex items-baseline justify-between mb-1 text-amber-50">
+        <span className="text-xs tracking-[0.18em] uppercase opacity-80">
+          Level {levelValue}
+        </span>
+        <span className="text-xs font-semibold text-amber-300">
+          {Math.round(clampedPercent)}%
+        </span>
+      </div>
+
+      {/* 바 전체 컨테이너 */}
+      <div
+        className="relative w-full h-3 rounded-full px-[2px] bg-gradient-to-r from-[#1e0f10] via-[#2a120b] to-[#22100b] shadow-[0_0_0_1px_rgba(255,255,255,0.05),0_0_10px_rgba(0,0,0,0.8)] overflow-hidden"
+        style={{ "--level": clampedPercent / 100 }}
+      >
+        {/* 외곽 별알갱이 느낌 */}
+        <div className="pointer-events-none absolute inset-0 opacity-30 mix-blend-screen">
+          <div
+            className="w-full h-full"
+            style={{
+              backgroundImage:
+                "radial-gradient(circle, rgba(255,255,255,0.3) 0, transparent 45%), radial-gradient(circle, rgba(255,255,255,0.18) 0, transparent 50%)",
+              backgroundSize: "26px 26px, 40px 40px",
+            }}
+          />
+        </div>
+
+        {/* 실제 채워지는 부분 */}
+        <div
+          className="relative h-full rounded-full shadow-[0_0_10px_rgba(255,184,54,0.85),0_0_22px_rgba(255,138,60,0.85),0_0_36px_rgba(255,230,106,0.6)] overflow-hidden"
+          style={{
+            width: `calc(var(--level) * 100%)`,
+            background:
+              "linear-gradient(90deg, #FF8A3C, #FFB836, #FFE66A)",
+          }}
+        >
+          {/* 안쪽 하이라이트가 흘러가는 느낌 */}
+          <div
+            className="absolute inset-[-50%] mix-blend-screen"
+            style={{
+              background:
+                "linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.7) 45%, rgba(255,255,255,0) 55%, transparent 100%)",
+              animation: "planet-level-shine 2.2s infinite ease-in-out",
+            }}
+          />
+          {/* 작은 별 반짝임 */}
+          <div
+            className="absolute inset-0 mix-blend-screen"
+            style={{
+              backgroundImage:
+                "radial-gradient(circle, rgba(255,255,255,0.5) 0, transparent 55%), radial-gradient(circle, rgba(255,255,255,0.3) 0, transparent 60%)",
+              backgroundSize: "22px 22px, 34px 34px",
+              backgroundPosition: "0 0, 16px 8px",
+              opacity: 0.7,
+              filter: "blur(0.2px)",
+            }}
+          />
+        </div>
+      </div>
+
+      {/* keyframes 정의 */}
+      <style>
+        {`
+          @keyframes planet-level-shine {
+            0% { transform: translateX(-80%); }
+            50% { transform: translateX(10%); }
+            100% { transform: translateX(120%); }
+          }
+        `}
+      </style>
+    </div>
+  );
+}
+
 export default function PlanetModal({
   category,
   description,
@@ -15,6 +96,25 @@ export default function PlanetModal({
   const lastCategoryRef = useRef(category); // 이전 category 추적
   const modalWidth = 400;
   const offset = 20;
+
+  // 이 행성의 완료된 할 일 개수
+  const completedCount = completedTasks?.length || 0;
+
+  // 한 레벨당 몇 개의 할 일이 필요한지
+  const LEVEL_STEP = 5;
+
+  // 5개당 1레벨 (0~4개: Lv.1, 5~9개: Lv.2, ...)
+  const level = useMemo(() => {
+    if (completedCount <= 0) return 1;
+    return Math.floor(completedCount / LEVEL_STEP) + 1;
+  }, [completedCount]);
+
+  // 현재 레벨 내 진행도 (0~100%)
+  const inLevelCount = completedCount % LEVEL_STEP;
+  const levelPercent = useMemo(
+    () => (inLevelCount / LEVEL_STEP) * 100,
+    [inLevelCount]
+  );
 
   // category가 변경되면 애니메이션 플래그 리셋 (모달이 다시 열릴 때 애니메이션 실행)
   useEffect(() => {
@@ -68,7 +168,8 @@ export default function PlanetModal({
       // 애니메이션 시작
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          modal.style.transition = "all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)";
+          modal.style.transition =
+            "all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)";
           modal.style.left = `${finalPosition.x}px`;
           modal.style.top = `${finalPosition.y}px`;
           modal.style.transform = "translateY(-50%) scale(1)";
@@ -137,6 +238,9 @@ export default function PlanetModal({
 
         {/* 내용 - 스크롤 가능 */}
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
+          {/* 맨 위에 레벨바 */}
+          <PlanetLevelBar level={level} percent={levelPercent} />
+
           {/* 인구 */}
           <div>
             <h3 className="text-[#4a90e2] text-sm font-semibold mb-2">인구</h3>
@@ -160,12 +264,18 @@ export default function PlanetModal({
             </h3>
             <p className="text-white text-base">{feature}</p>
           </div>
+
+          {/* 행성소개 */}
           <div>
             <h3 className="text-[#4a90e2] text-sm font-semibold mb-3">
               행성소개
             </h3>
-            {description || "행성 소개를 입력하지 않았어요!"}
+            <p className="text-white text-base">
+              {description || "행성 소개를 입력하지 않았어요!"}
+            </p>
           </div>
+
+          {/* 완료된 할 일 */}
           <div>
             <h3 className="text-[#4a90e2] text-sm font-semibold mb-3">
               완료된 할 일

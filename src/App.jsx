@@ -284,17 +284,11 @@ function App() {
           return [...prev, ...uniqueNewCategories];
         });
 
+        // 이름이 같아도 전부 카운트되도록, id 기준으로만 중복 제거
         setCompletedTasks((prev) => {
-          // 기존 완료된 할 일과 병합 (중복 제거)
-          // ID뿐만 아니라 text와 category 조합으로도 중복 체크
           const existingIds = new Set(prev.map((t) => t.id));
-          const existingKeys = new Set(
-            prev.map((t) => `${t.text}|${t.category}`)
-          );
           const uniqueNewTasks = newCompletedTasks.filter(
-            (t) =>
-              !existingIds.has(t.id) &&
-              !existingKeys.has(`${t.text}|${t.category}`)
+            (t) => !existingIds.has(t.id)
           );
           return [...prev, ...uniqueNewTasks];
         });
@@ -379,17 +373,12 @@ function App() {
         });
 
         setTodos(localTodos);
+
+        // 이름이 같아도 전부 카운트되도록, id 기준으로만 중복 제거
         setCompletedTasks((prev) => {
-          // 기존 완료된 할 일과 병합 (중복 제거)
-          // ID뿐만 아니라 text와 category 조합으로도 중복 체크
           const existingIds = new Set(prev.map((t) => t.id));
-          const existingKeys = new Set(
-            prev.map((t) => `${t.text}|${t.category}`)
-          );
           const uniqueNewTasks = localCompletedTasks.filter(
-            (t) =>
-              !existingIds.has(t.id) &&
-              !existingKeys.has(`${t.text}|${t.category}`)
+            (t) => !existingIds.has(t.id)
           );
           return [...prev, ...uniqueNewTasks];
         });
@@ -422,16 +411,27 @@ function App() {
     [completedTasks]
   );
 
-  // 카테고리별 행성 크기 계산 (완료된 할 일 개수에 비례)
+  // 카테고리별 레벨 계산
+  const getLevel = useCallback((category) => {
+    const count = tasksByCategory[category]?.length || 0;
+    const LEVEL_STEP = 5;
+
+    if (count <= 0) return 1;
+    return Math.floor(count / LEVEL_STEP) + 1;
+  }, [tasksByCategory]);
+
+
+  // 카테고리별 행성 크기 계산 (행성 레벨에 비례)
   const getPlanetSize = useCallback(
     (category) => {
-      const count = tasksByCategory[category]?.length || 0;
+      const level = getLevel(category);
+
       return Math.max(
         MINIMUM_PLANET_SIZE,
-        MAXIMUM_PLANET_SIZE * oneMinusExp(count)
+        MAXIMUM_PLANET_SIZE * oneMinusExp(level)
       );
     },
-    [tasksByCategory]
+    [getLevel]
   );
 
   // 모든 카테고리 목록 (categories, todos, completedTasks에서 추출)
@@ -507,15 +507,6 @@ function App() {
       clearTimeout(hiddenTimer);
     };
   }, [allCategories]);
-
-  // 궤도 반지름 목록 (중복 제거)
-  // const uniqueRadii = useMemo(() => {
-  //   const radiiSet = new Set();
-  //   allCategories.forEach((category) => {
-  //     radiiSet.add(getOrbitRadius(category));
-  //   });
-  //   return Array.from(radiiSet);
-  // }, [allCategories]);
 
   // 태양 기준으로 행성 위치 생성 (새 카테고리만 랜덤 각도 배치)
   useEffect(() => {
@@ -1397,20 +1388,15 @@ function App() {
         completedAt: new Date(),
       }));
 
+      // 이름이 같아도 전부 카운트되도록, id 기준으로만 중복 제거
       setCompletedTasks((prev) => {
-        // 기존 완료된 할 일과 병합 (중복 제거)
-        // ID뿐만 아니라 text와 category 조합으로도 중복 체크
         const existingIds = new Set(prev.map((t) => t.id));
-        const existingKeys = new Set(
-          prev.map((t) => `${t.text}|${t.category}`)
-        );
         const uniqueNewTasks = newCompletedTasks.filter(
-          (t) =>
-            !existingIds.has(t.id) &&
-            !existingKeys.has(`${t.text}|${t.category}`)
+          (t) => !existingIds.has(t.id)
         );
         return [...prev, ...uniqueNewTasks];
       });
+
       // 체크된 할 일들을 제거하고, 체크되지 않은 할 일들만 남김
       setTodos((prev) => prev.filter((todo) => !todo.checked));
 
@@ -1600,14 +1586,12 @@ function App() {
       return copy;
     });
 
-    // 모달 닫기 (기존 동일)
+    // 모달 닫기
     setClickedPlanetCategories((prev) => {
       const newSet = new Set(prev);
       newSet.delete(category);
       return newSet;
     });
-
-    // 필요하면 planetSlots에서도 해당 카테고리 제거 로직 추가 가능
   };
 
   return (
