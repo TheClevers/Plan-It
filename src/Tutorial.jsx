@@ -3,11 +3,11 @@ import { useState, useEffect } from "react";
 import tutorial1 from "./assets/tutorial/tutorial1.png";
 import tutorial2 from "./assets/tutorial/tutorial2.png";
 import tutorial3 from "./assets/tutorial/tutorial3.png";
-import tutorial4 from "./assets/tutorial/tutorial4.png";
-import tutorial5 from "./assets/tutorial/tutorial5.png";
-import tutorial6 from "./assets/tutorial/tutorial6.png";
-import tutorial7 from "./assets/tutorial/tutorial7.png";
-import tutorial8 from "./assets/tutorial/tutorial8.png";
+import tutorial4 from "./assets/tutorial/tutorial_re4.png";
+import tutorial5 from "./assets/tutorial/tutorial_re5.png";
+import tutorial6 from "./assets/tutorial/tutorial_re6.png";
+import tutorial7 from "./assets/tutorial/tutorial_re7.png";
+import tutorial8 from "./assets/tutorial/tutorial_re8.png";
 import logo from "./assets/Logo.png"
 export default function Tutorial() {
   const navigate = useNavigate();
