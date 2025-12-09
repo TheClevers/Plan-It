@@ -284,11 +284,17 @@ function App() {
           return [...prev, ...uniqueNewCategories];
         });
 
-        // 이름이 같아도 전부 카운트되도록, id 기준으로만 중복 제거
+        // 기존 완료된 할 일과 병합 (중복 제거)
+        // ID뿐만 아니라 text와 category 조합으로도 중복 체크
         setCompletedTasks((prev) => {
           const existingIds = new Set(prev.map((t) => t.id));
+          const existingKeys = new Set(
+            prev.map((t) => `${t.text}|${t.category}`)
+          );
           const uniqueNewTasks = newCompletedTasks.filter(
-            (t) => !existingIds.has(t.id)
+            (t) =>
+              !existingIds.has(t.id) &&
+              !existingKeys.has(`${t.text}|${t.category}`)
           );
           return [...prev, ...uniqueNewTasks];
         });
@@ -374,11 +380,17 @@ function App() {
 
         setTodos(localTodos);
 
-        // 이름이 같아도 전부 카운트되도록, id 기준으로만 중복 제거
+        // 기존 완료된 할 일과 병합 (중복 제거)
+        // ID뿐만 아니라 text와 category 조합으로도 중복 체크
         setCompletedTasks((prev) => {
           const existingIds = new Set(prev.map((t) => t.id));
+          const existingKeys = new Set(
+            prev.map((t) => `${t.text}|${t.category}`)
+          );
           const uniqueNewTasks = localCompletedTasks.filter(
-            (t) => !existingIds.has(t.id)
+            (t) =>
+              !existingIds.has(t.id) &&
+              !existingKeys.has(`${t.text}|${t.category}`)
           );
           return [...prev, ...uniqueNewTasks];
         });
@@ -412,14 +424,16 @@ function App() {
   );
 
   // 카테고리별 레벨 계산
-  const getLevel = useCallback((category) => {
-    const count = tasksByCategory[category]?.length || 0;
-    const LEVEL_STEP = 5;
+  const getLevel = useCallback(
+    (category) => {
+      const count = tasksByCategory[category]?.length || 0;
+      const LEVEL_STEP = 5;
 
-    if (count <= 0) return 1;
-    return Math.floor(count / LEVEL_STEP) + 1;
-  }, [tasksByCategory]);
-
+      if (count <= 0) return 1;
+      return Math.floor(count / LEVEL_STEP) + 1;
+    },
+    [tasksByCategory]
+  );
 
   // 카테고리별 행성 크기 계산 (행성 레벨에 비례)
   const getPlanetSize = useCallback(
@@ -1388,11 +1402,17 @@ function App() {
         completedAt: new Date(),
       }));
 
-      // 이름이 같아도 전부 카운트되도록, id 기준으로만 중복 제거
+      // 기존 완료된 할 일과 병합 (중복 제거)
+      // ID뿐만 아니라 text와 category 조합으로도 중복 체크
       setCompletedTasks((prev) => {
         const existingIds = new Set(prev.map((t) => t.id));
+        const existingKeys = new Set(
+          prev.map((t) => `${t.text}|${t.category}`)
+        );
         const uniqueNewTasks = newCompletedTasks.filter(
-          (t) => !existingIds.has(t.id)
+          (t) =>
+            !existingIds.has(t.id) &&
+            !existingKeys.has(`${t.text}|${t.category}`)
         );
         return [...prev, ...uniqueNewTasks];
       });
